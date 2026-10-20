@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { WorkoutService } from '../../core/services/workout.service';
-import { UserProfile, WorkoutPlanResponse, AuthRequest, RegisterRequest } from '../../core/models/workout.model';
+import { ReminderService } from '../../core/services/reminder.service';
+import { UserProfile, WorkoutPlanResponse, AuthRequest, RegisterRequest, UserStatsResponse } from '../../core/models/workout.model';
 
 export interface DaySchedule {
   date: string; // 'YYYY-MM-DD'
@@ -21,9 +22,18 @@ export interface DaySchedule {
 })
 export class WorkoutFormComponent implements OnInit, OnDestroy {
   readonly authService = inject(AuthService);
+  readonly reminderService = inject(ReminderService);
   private readonly workoutService = inject(WorkoutService);
   private readonly fb = inject(FormBuilder);
   private readonly cdr = inject(ChangeDetectorRef);
+
+  // Estados de Gamificação e Estatísticas
+  userStats = signal<UserStatsResponse | null>(null);
+  showBadgesModal = signal<boolean>(false);
+
+  // Estados de IA & Feedback
+  replacingExerciseId = signal<number | null>(null);
+  submittingFeedback = signal<boolean>(false);
 
   // Estados de Autenticação
   authTab = signal<'login' | 'register'>('login');
@@ -179,6 +189,8 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
     const user = this.authService.currentUser();
     if (!user?.id) return;
 
+    this.loadUserStats();
+
     this.workoutService.getUserWorkouts(user.id).subscribe({
       next: (workouts) => {
         const days = this.weekDays().map((day) => {
@@ -194,6 +206,21 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Erro ao carregar treinos:', err);
+      }
+    });
+  }
+
+  loadUserStats(): void {
+    const user = this.authService.currentUser();
+    if (!user?.id) return;
+
+    this.workoutService.getUserStats(user.id).subscribe({
+      next: (stats) => {
+        this.userStats.set(stats);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erro ao carregar estatísticas:', err);
       }
     });
   }
@@ -318,12 +345,66 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
           d.date === updatedPlan.workoutDate ? { ...d, workout: updatedPlan } : d
         );
         this.weekDays.set(updatedDays);
+
+        // Se o treino ficou concluído ou alterou estado, recarrega as estatísticas e streak
+        this.loadUserStats();
         this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Erro ao alternar exercício:', err);
       }
     });
+  }
+
+  replaceExercise(event: Event, exerciseId: number): void {
+    event.stopPropagation(); // Não marcar a checkbox
+    const workout = this.currentWorkout();
+    if (!workout || this.replacingExerciseId() !== null) return;
+
+    this.replacingExerciseId.set(exerciseId);
+
+    this.workoutService.replaceExercise(workout.id, exerciseId).subscribe({
+      next: (updatedPlan) => {
+        this.currentWorkout.set(updatedPlan);
+
+        const updatedDays = this.weekDays().map((d) =>
+          d.date === updatedPlan.workoutDate ? { ...d, workout: updatedPlan } : d
+        );
+        this.weekDays.set(updatedDays);
+
+        this.replacingExerciseId.set(null);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erro ao substituir exercício com IA:', err);
+        this.replacingExerciseId.set(null);
+        alert('Não foi possível substituir o exercício de momento. Tenta novamente.');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  submitFeedback(difficulty: string): void {
+    const workout = this.currentWorkout();
+    if (!workout) return;
+
+    this.submittingFeedback.set(true);
+
+    this.workoutService.submitFeedback(workout.id, difficulty).subscribe({
+      next: (updatedPlan) => {
+        this.currentWorkout.set(updatedPlan);
+        this.submittingFeedback.set(false);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erro ao submeter feedback:', err);
+        this.submittingFeedback.set(false);
+      }
+    });
+  }
+
+  toggleReminder(): void {
+    this.reminderService.toggleReminder();
   }
 
   getCompletedCount(): number {

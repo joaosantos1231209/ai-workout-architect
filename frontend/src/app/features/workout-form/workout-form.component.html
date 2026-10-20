@@ -196,30 +196,137 @@
   <!-- ESTADO 2: ATLETA AUTENTICADO (CALENDÁRIO SEMANAL & GESTÃO DO TREINO DO DIA) -->
   <!-- ========================================================================= -->
   @if (authService.currentUser(); as user) {
-    <!-- Barra Superior do Atleta -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60 border border-slate-800/80 p-5 rounded-2xl backdrop-blur-md">
-      <div>
-        <div class="flex items-center gap-2">
-          <h2 class="text-xl font-bold text-white">Olá, {{ user.name }} 👋</h2>
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            {{ user.fitnessLevel }}
-          </span>
+    <!-- Barra Superior do Atleta com Gamificação & Notificações -->
+    <div class="bg-slate-900/80 border border-slate-800/90 p-5 rounded-2xl backdrop-blur-md space-y-4 shadow-xl">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 class="text-xl font-bold text-white">Olá, {{ user.name }} 👋</h2>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              {{ user.fitnessLevel }}
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">
+            Foco Atual: <span class="text-slate-200 font-medium">{{ user.primaryGoal }}</span>
+          </p>
         </div>
-        <p class="text-xs text-slate-400 mt-1">
-          Foco Atual: <span class="text-slate-200 font-medium">{{ user.primaryGoal }}</span>
-        </p>
+
+        <div class="flex items-center gap-2 self-start sm:self-auto">
+          <!-- Botão Lembrete Diário 09:30 -->
+          <button
+            type="button"
+            (click)="toggleReminder()"
+            [title]="reminderService.isReminderEnabled() ? 'Lembrete diário ativo para as 09:30' : 'Ativar lembrete diário para as 09:30'"
+            class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 border"
+            [class]="reminderService.isReminderEnabled()
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm shadow-emerald-500/20'
+              : 'bg-slate-800/80 hover:bg-slate-700 text-slate-400 border-slate-700'"
+          >
+            <span>🔔</span>
+            <span>09:30</span>
+            @if (reminderService.isReminderEnabled()) {
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            }
+          </button>
+
+          <!-- Terminar Sessão -->
+          <button
+            type="button"
+            (click)="logout()"
+            class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700/80 transition-colors flex items-center gap-1.5"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+            </svg>
+            <span>Sair</span>
+          </button>
+        </div>
       </div>
 
-      <button
-        type="button"
-        (click)="logout()"
-        class="self-start sm:self-auto px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700/80 transition-colors flex items-center gap-1.5"
-      >
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-        </svg>
-        <span>Terminar Sessão</span>
-      </button>
+      <!-- CARDS DE ESTATÍSTICAS & GAMIFICAÇÃO (STREAK, TREINOS, BADGES) -->
+      <div class="grid grid-cols-3 gap-2.5 pt-3 border-t border-slate-800/80">
+        <!-- Streak de Dias Seguidos -->
+        <div class="bg-slate-950/70 border border-amber-500/20 rounded-xl p-3 flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-lg shrink-0">
+            🔥
+          </div>
+          <div>
+            <div class="text-base sm:text-lg font-black text-white">
+              {{ userStats()?.streakDays || 0 }} {{ (userStats()?.streakDays || 0) === 1 ? 'Dia' : 'Dias' }}
+            </div>
+            <div class="text-[10px] sm:text-xs text-amber-400/90 font-medium uppercase tracking-wider">
+              Sequência Ativa
+            </div>
+          </div>
+        </div>
+
+        <!-- Total de Treinos Concluídos -->
+        <div class="bg-slate-950/70 border border-emerald-500/20 rounded-xl p-3 flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-lg shrink-0">
+            🏋️
+          </div>
+          <div>
+            <div class="text-base sm:text-lg font-black text-white">
+              {{ userStats()?.totalCompletedWorkouts || 0 }}
+            </div>
+            <div class="text-[10px] sm:text-xs text-emerald-400/90 font-medium uppercase tracking-wider">
+              Treinos Feitos
+            </div>
+          </div>
+        </div>
+
+        <!-- Conquistas / Badges Desbloqueadas -->
+        <button
+          type="button"
+          (click)="showBadgesModal.set(!showBadgesModal())"
+          class="bg-slate-950/70 hover:bg-slate-900 border border-purple-500/20 hover:border-purple-500/40 rounded-xl p-3 flex items-center gap-3 text-left transition-all cursor-pointer group"
+        >
+          <div class="w-9 h-9 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center text-lg shrink-0 group-hover:scale-105 transition-transform">
+            🏆
+          </div>
+          <div>
+            <div class="text-base sm:text-lg font-black text-white flex items-center gap-1">
+              <span>{{ userStats()?.unlockedBadges?.length || 0 }}</span>
+              <span class="text-[10px] text-purple-400 font-normal underline">ver</span>
+            </div>
+            <div class="text-[10px] sm:text-xs text-purple-400/90 font-medium uppercase tracking-wider">
+              Conquistas
+            </div>
+          </div>
+        </button>
+      </div>
+
+      <!-- MODAL / PAINEL DE CONQUISTAS (SE ATIVADO) -->
+      @if (showBadgesModal()) {
+        <div class="mt-3 p-4 rounded-xl bg-purple-950/20 border border-purple-500/30 space-y-3 animate-fadeIn">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
+              <span>🏆</span> As Tuas Conquistas Desbloqueadas
+            </h4>
+            <button
+              type="button"
+              (click)="showBadgesModal.set(false)"
+              class="text-xs text-slate-400 hover:text-white"
+            >
+              ✕ Fechar
+            </button>
+          </div>
+
+          @if (userStats()?.unlockedBadges?.length) {
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              @for (badge of userStats()?.unlockedBadges; track badge) {
+                <div class="p-2.5 rounded-lg bg-slate-900/90 border border-purple-500/20 text-xs text-slate-200 flex items-center gap-2">
+                  <span>{{ badge }}</span>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="text-xs text-slate-400">
+              Ainda não desbloqueaste conquistas. Conclui o teu primeiro treino para desbloquear o troféu de iniciante! 🚀
+            </p>
+          }
+        </div>
+      }
     </div>
 
     <!-- CALENDÁRIO SEMANAL (SEGUNDA A DOMINGO) -->
@@ -403,13 +510,76 @@
           </div>
         </div>
 
-        <!-- BANNER DE CELEBRAÇÃO (SE COMPLETO) -->
+        <!-- BANNER DE CELEBRAÇÃO COM FEEDBACK ADAPTATIVO DE DIFICULDADE (SE COMPLETO) -->
         @if (workout.completed) {
-          <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm flex items-center gap-3 animate-fadeIn">
-            <span class="text-2xl">🏆</span>
-            <div>
-              <p class="font-bold text-white">Parabéns! Plano de treino concluído com sucesso!</p>
-              <p class="text-xs text-emerald-300 mt-0.5">Assinalaste todos os exercícios deste dia. O teu progresso foi registado na base de dados.</p>
+          <div class="p-5 rounded-2xl bg-gradient-to-r from-emerald-950/70 via-slate-900 to-slate-950 border border-emerald-500/40 space-y-4 animate-fadeIn shadow-xl">
+            <div class="flex items-start gap-3">
+              <span class="text-3xl">🏆</span>
+              <div>
+                <h4 class="text-base font-bold text-white">Parabéns! Completaste todos os exercícios deste treino!</h4>
+                <p class="text-xs text-emerald-300/90 mt-0.5">
+                  O teu progresso foi registado e a tua sequência de dias seguidos atualizada.
+                </p>
+              </div>
+            </div>
+
+            <!-- SELETOR DE DIFICULDADE PERCEBIDA -->
+            <div class="pt-3 border-t border-emerald-500/20">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-slate-300">Como sentiste a dificuldade deste treino?</span>
+                <span class="text-[11px] text-slate-400">A IA ajustará os próximos treinos</span>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  (click)="submitFeedback('Muito Fácil')"
+                  [disabled]="submittingFeedback()"
+                  [class]="workout.perceivedDifficulty === 'Muito Fácil'
+                    ? 'py-2.5 px-3 rounded-xl text-xs font-bold bg-emerald-500 text-slate-950 border border-emerald-400 shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5'
+                    : 'py-2.5 px-3 rounded-xl text-xs font-medium bg-slate-900/90 text-slate-300 border border-slate-700/80 hover:border-emerald-500/80 hover:text-white transition-all flex items-center justify-center gap-1.5'"
+                >
+                  <span>🟢 Muito Fácil</span>
+                  @if (workout.perceivedDifficulty === 'Muito Fácil') {
+                    <span>✓</span>
+                  }
+                </button>
+
+                <button
+                  type="button"
+                  (click)="submitFeedback('Ideal')"
+                  [disabled]="submittingFeedback()"
+                  [class]="workout.perceivedDifficulty === 'Ideal'
+                    ? 'py-2.5 px-3 rounded-xl text-xs font-bold bg-teal-500 text-slate-950 border border-teal-400 shadow-md shadow-teal-500/20 flex items-center justify-center gap-1.5'
+                    : 'py-2.5 px-3 rounded-xl text-xs font-medium bg-slate-900/90 text-slate-300 border border-slate-700/80 hover:border-teal-500/80 hover:text-white transition-all flex items-center justify-center gap-1.5'"
+                >
+                  <span>⚡ Ideal / No Ponto</span>
+                  @if (workout.perceivedDifficulty === 'Ideal') {
+                    <span>✓</span>
+                  }
+                </button>
+
+                <button
+                  type="button"
+                  (click)="submitFeedback('Muito Difícil')"
+                  [disabled]="submittingFeedback()"
+                  [class]="workout.perceivedDifficulty === 'Muito Difícil'
+                    ? 'py-2.5 px-3 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 border border-amber-400 shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5'
+                    : 'py-2.5 px-3 rounded-xl text-xs font-medium bg-slate-900/90 text-slate-300 border border-slate-700/80 hover:border-amber-500/80 hover:text-white transition-all flex items-center justify-center gap-1.5'"
+                >
+                  <span>🔥 Muito Difícil</span>
+                  @if (workout.perceivedDifficulty === 'Muito Difícil') {
+                    <span>✓</span>
+                  }
+                </button>
+              </div>
+
+              @if (workout.perceivedDifficulty) {
+                <div class="mt-2.5 p-2 rounded-lg bg-emerald-950/40 border border-emerald-500/20 text-[11px] text-emerald-300 flex items-center gap-1.5">
+                  <span>✓</span>
+                  <span>Feedback registado: <strong>{{ workout.perceivedDifficulty }}</strong>. A IA vai calibrar a sobrecarga do teu próximo treino com base nesta avaliação!</span>
+                </div>
+              }
             </div>
           </div>
         }
@@ -479,7 +649,7 @@
                   </div>
                 </div>
 
-                <!-- Lado Direito: Badges de Séries, Reps e Equipamento -->
+                <!-- Lado Direito: Badges + Botão Substituir com IA -->
                 <div class="flex flex-wrap items-center gap-2 shrink-0 md:justify-end pl-9 md:pl-0">
                   <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-800 text-emerald-300 border border-slate-700">
                     {{ exercise.sets }} Séries
@@ -492,6 +662,25 @@
                       🏠 {{ exercise.equipmentNeeded }}
                     </span>
                   }
+
+                  <!-- Botão Trocar Exercício com IA -->
+                  <button
+                    type="button"
+                    (click)="replaceExercise($event, exercise.id)"
+                    [disabled]="replacingExerciseId() !== null"
+                    title="Pedir à IA para substituir este exercício por outra alternativa em casa"
+                    class="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 text-amber-300 border border-amber-500/30 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    @if (replacingExerciseId() === exercise.id) {
+                      <svg class="animate-spin h-3.5 w-3.5 text-amber-300" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>A trocar...</span>
+                    } @else {
+                      <span>🔄 Trocar com IA</span>
+                    }
+                  </button>
                 </div>
               </div>
             }
