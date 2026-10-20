@@ -14,5 +14,5 @@ export const environment = {
   // Se estiver na Vercel (*.vercel.app), aponta para o backend alojado na cloud.
   apiUrl: isLocal
     ? `http://${hostname}:8080/api/v1`
-    : 'https://ai-workout-backend.onrender.com/api/v1'
+    : 'https://ai-workout-architect.onrender.com/api/v1'
 };
