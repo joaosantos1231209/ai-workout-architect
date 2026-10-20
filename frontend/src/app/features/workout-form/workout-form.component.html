@@ -1,0 +1,609 @@
+<div class="w-full max-w-5xl mx-auto px-4 py-8 space-y-8">
+
+  <!-- ========================================================================= -->
+  <!-- ESTADO 1: ATLETA NÃO AUTENTICADO (LOGIN / REGISTO) -->
+  <!-- ========================================================================= -->
+  @if (!authService.currentUser()) {
+    <div class="max-w-md mx-auto">
+      <!-- Cabeçalho de Boas-Vindas -->
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-3">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Treino em Casa Inteligente com IA
+        </div>
+        <h1 class="text-3xl font-extrabold tracking-tight text-white">
+          AI Workout Architect
+        </h1>
+        <p class="text-slate-400 text-sm mt-2">
+          Entra ou cria a tua conta para gerires os teus treinos diários em casa e registares o teu progresso.
+        </p>
+      </div>
+
+      <!-- Card de Autenticação -->
+      <div class="bg-slate-900/90 border border-slate-800 backdrop-blur-xl rounded-2xl shadow-2xl p-6 md:p-8">
+        <!-- Abas: Entrar / Criar Conta -->
+        <div class="flex rounded-xl bg-slate-950 p-1 mb-6 border border-slate-800">
+          <button
+            type="button"
+            (click)="authTab.set('login')"
+            class="flex-1 py-2 text-sm font-semibold rounded-lg transition-all"
+            [class.bg-emerald-500]="authTab() === 'login'"
+            [class.text-white]="authTab() === 'login'"
+            [class.text-slate-400]="authTab() !== 'login'"
+          >
+            Entrar
+          </button>
+          <button
+            type="button"
+            (click)="authTab.set('register')"
+            class="flex-1 py-2 text-sm font-semibold rounded-lg transition-all"
+            [class.bg-emerald-500]="authTab() === 'register'"
+            [class.text-white]="authTab() === 'register'"
+            [class.text-slate-400]="authTab() !== 'register'"
+          >
+            Criar Conta
+          </button>
+        </div>
+
+        <!-- Mensagem de Erro -->
+        @if (authError()) {
+          <div class="p-3 mb-4 rounded-xl bg-red-950/50 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
+            <svg class="w-4 h-4 text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>{{ authError() }}</span>
+          </div>
+        }
+
+        <!-- FORMULÁRIO 1: LOGIN -->
+        @if (authTab() === 'login') {
+          <form [formGroup]="loginForm" (ngSubmit)="onLogin()" class="space-y-4">
+            <div>
+              <label for="login-email" class="block text-xs font-medium text-slate-300 mb-1.5">Email</label>
+              <input
+                type="email"
+                id="login-email"
+                formControlName="email"
+                placeholder="o.teu.email@exemplo.com"
+                class="w-full px-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+              />
+            </div>
+            <div>
+              <label for="login-password" class="block text-xs font-medium text-slate-300 mb-1.5">Palavra-passe</label>
+              <input
+                type="password"
+                id="login-password"
+                formControlName="password"
+                placeholder="••••••••"
+                class="w-full px-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+              />
+            </div>
+
+            <button
+              type="submit"
+              [disabled]="authLoading() || loginForm.invalid"
+              class="w-full mt-2 py-3 px-4 rounded-xl font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 transition-all text-sm flex items-center justify-center gap-2"
+            >
+              @if (authLoading()) {
+                <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>A autenticar...</span>
+              } @else {
+                <span>Entrar na Conta</span>
+              }
+            </button>
+          </form>
+        }
+
+        <!-- FORMULÁRIO 2: REGISTO -->
+        @if (authTab() === 'register') {
+          <form [formGroup]="registerForm" (ngSubmit)="onRegister()" class="space-y-4">
+            <div>
+              <label for="reg-name" class="block text-xs font-medium text-slate-300 mb-1.5">O Teu Nome</label>
+              <input
+                type="text"
+                id="reg-name"
+                formControlName="name"
+                placeholder="ex: João Santos"
+                class="w-full px-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+              />
+            </div>
+
+            <div>
+              <label for="reg-email" class="block text-xs font-medium text-slate-300 mb-1.5">Email</label>
+              <input
+                type="email"
+                id="reg-email"
+                formControlName="email"
+                placeholder="o.teu.email@exemplo.com"
+                class="w-full px-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+              />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="reg-password" class="block text-xs font-medium text-slate-300 mb-1.5">Palavra-passe</label>
+                <input
+                  type="password"
+                  id="reg-password"
+                  formControlName="password"
+                  placeholder="••••••••"
+                  class="w-full px-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                />
+              </div>
+              <div>
+                <label for="reg-age" class="block text-xs font-medium text-slate-300 mb-1.5">Idade</label>
+                <input
+                  type="number"
+                  id="reg-age"
+                  formControlName="age"
+                  placeholder="25"
+                  class="w-full px-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label for="reg-level" class="block text-xs font-medium text-slate-300 mb-1.5">Nível de Condicionamento</label>
+              <select
+                id="reg-level"
+                formControlName="fitnessLevel"
+                class="w-full px-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer"
+              >
+                @for (level of fitnessLevels; track level) {
+                  <option [value]="level" class="bg-slate-900 text-white">{{ level }}</option>
+                }
+              </select>
+            </div>
+
+            <div>
+              <label for="reg-goal" class="block text-xs font-medium text-slate-300 mb-1.5">Objetivo Principal</label>
+              <select
+                id="reg-goal"
+                formControlName="primaryGoal"
+                class="w-full px-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer"
+              >
+                @for (goal of primaryGoals; track goal) {
+                  <option [value]="goal" class="bg-slate-900 text-white">{{ goal }}</option>
+                }
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              [disabled]="authLoading() || registerForm.invalid"
+              class="w-full mt-2 py-3 px-4 rounded-xl font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 transition-all text-sm flex items-center justify-center gap-2"
+            >
+              @if (authLoading()) {
+                <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>A criar conta...</span>
+              } @else {
+                <span>Criar Conta & Começar</span>
+              }
+            </button>
+          </form>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- ESTADO 2: ATLETA AUTENTICADO (CALENDÁRIO SEMANAL & GESTÃO DO TREINO DO DIA) -->
+  <!-- ========================================================================= -->
+  @if (authService.currentUser(); as user) {
+    <!-- Barra Superior do Atleta -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60 border border-slate-800/80 p-5 rounded-2xl backdrop-blur-md">
+      <div>
+        <div class="flex items-center gap-2">
+          <h2 class="text-xl font-bold text-white">Olá, {{ user.name }} 👋</h2>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            {{ user.fitnessLevel }}
+          </span>
+        </div>
+        <p class="text-xs text-slate-400 mt-1">
+          Foco Atual: <span class="text-slate-200 font-medium">{{ user.primaryGoal }}</span>
+        </p>
+      </div>
+
+      <button
+        type="button"
+        (click)="logout()"
+        class="self-start sm:self-auto px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700/80 transition-colors flex items-center gap-1.5"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+        </svg>
+        <span>Terminar Sessão</span>
+      </button>
+    </div>
+
+    <!-- CALENDÁRIO SEMANAL (SEGUNDA A DOMINGO) -->
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">O Teu Calendário Semanal de Treinos</h3>
+        <span class="text-xs text-slate-400">Seleciona um dia para ver ou criar o treino</span>
+      </div>
+
+      <div class="flex sm:grid sm:grid-cols-4 md:grid-cols-7 gap-2.5 overflow-x-auto pb-2 sm:pb-0 scrollbar-none snap-x">
+        @for (day of weekDays(); track day.date) {
+          <button
+            type="button"
+            (click)="selectDay(day)"
+            class="min-w-[110px] sm:min-w-0 flex-1 shrink-0 p-3.5 rounded-2xl border transition-all text-left flex flex-col justify-between h-28 relative group snap-start"
+            [class]="selectedDate() === day.date
+              ? 'bg-emerald-950/40 border-2 border-emerald-500 ring-2 ring-emerald-500/30 shadow-lg shadow-emerald-500/10'
+              : 'bg-slate-900/70 border-slate-800/90 hover:border-slate-700'"
+          >
+            <!-- Nome do Dia & Badge 'Hoje' -->
+            <div class="flex items-center justify-between w-full">
+              <span class="text-xs font-semibold text-slate-300">{{ day.dayName }}</span>
+              @if (day.isToday) {
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              }
+            </div>
+
+            <!-- Data do Dia -->
+            <div class="text-lg font-black text-white">
+              {{ day.date.substring(8) }}
+            </div>
+
+            <!-- Estado do Treino no Dia -->
+            <div class="w-full">
+              @if (day.workout?.completed) {
+                <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
+                  <span>✓</span> Cumprido
+                </span>
+              } @else if (day.workout) {
+                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-amber-400">
+                  <span>⏳</span> Pendente
+                </span>
+              } @else {
+                <span class="text-[11px] text-slate-400">
+                  + Sem Treino
+                </span>
+              }
+            </div>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- MENSAGEM DE ERRO (CASO EXISTA) -->
+    @if (errorMessage()) {
+      <div class="p-4 rounded-xl bg-red-950/40 border border-red-500/30 text-red-200 text-sm flex items-start gap-3">
+        <svg class="w-5 h-5 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+        <div>{{ errorMessage() }}</div>
+      </div>
+    }
+
+    <!-- ========================================================================= -->
+    <!-- DETALHE DO TREINO DO DIA SELECIONADO -->
+    <!-- ========================================================================= -->
+    @if (currentWorkout(); as workout) {
+      <div class="bg-slate-900/90 border border-slate-800 backdrop-blur-xl rounded-2xl shadow-2xl p-6 md:p-8 space-y-6 animate-fadeIn">
+        <!-- Topo do Plano: Título e Ação -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                🏠 {{ workout.focusArea }}
+              </span>
+              <span class="text-xs text-slate-400">
+                Dia: {{ workout.workoutDate }}
+              </span>
+            </div>
+            <h2 class="text-2xl md:text-3xl font-extrabold text-white">{{ workout.title }}</h2>
+          </div>
+
+          <div class="flex items-center gap-2 self-start md:self-auto">
+            <button
+              type="button"
+              (click)="toggleRegenerateOptions()"
+              class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all flex items-center gap-2"
+            >
+              <span>⚙️ {{ showRegenerateOptions() ? 'Ocultar Opções' : 'Alterar Nível / Foco' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- PAINEL PARA ALTERAR NÍVEL E FOCO E REGENERAR -->
+        @if (showRegenerateOptions()) {
+          <div class="p-5 rounded-2xl bg-slate-950/90 border border-emerald-500/30 space-y-4 animate-fadeIn">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div>
+                <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                  <span>🎯 Personalizar Novo Treino para este Dia</span>
+                </h4>
+                <p class="text-xs text-slate-400">Escolhe o nível de intensidade e o foco para gerar um novo plano.</p>
+              </div>
+            </div>
+
+            <!-- Nível de Intensidade -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-2">Nível de Dificuldade:</label>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                @for (lvl of fitnessLevels; track lvl) {
+                  <button
+                    type="button"
+                    (click)="setDailyFitnessLevel(lvl)"
+                    [class]="dailyFitnessLevel() === lvl
+                      ? 'py-2 px-3 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500 shadow-md shadow-emerald-500/10'
+                      : 'py-2 px-3 rounded-xl text-xs font-medium bg-slate-900 text-slate-400 border border-slate-800 hover:border-slate-700 hover:text-slate-200'"
+                  >
+                    {{ lvl }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Foco / Tipo de Treino -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-2">Tipo de Treino Focado em:</label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                @for (opt of dailyFocusOptions; track opt.id) {
+                  <button
+                    type="button"
+                    (click)="setDailyFocusArea(opt.id)"
+                    [class]="dailyFocusArea() === opt.id
+                      ? 'p-3 rounded-xl text-left bg-emerald-500/15 border-2 border-emerald-500 transition-all'
+                      : 'p-3 rounded-xl text-left bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-all'"
+                  >
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="text-base">{{ opt.icon }}</span>
+                      <span class="text-xs font-bold" [class]="dailyFocusArea() === opt.id ? 'text-emerald-300' : 'text-white'">{{ opt.label }}</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 line-clamp-1">{{ opt.desc }}</p>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Botão de regeneração -->
+            <div class="pt-2 flex justify-end">
+              <button
+                type="button"
+                (click)="generateForSelectedDay()"
+                [disabled]="isGenerating()"
+                class="py-2.5 px-5 rounded-xl font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-lg shadow-emerald-500/20 transition-all text-xs flex items-center gap-2 disabled:opacity-50"
+              >
+                @if (isGenerating()) {
+                  <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>A Gerar Treino...</span>
+                } @else {
+                  <span>⚡ Regenerar Treino com este Foco</span>
+                }
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- BARRA DE PROGRESSO DO DIA -->
+        <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+          <div class="flex items-center justify-between text-xs mb-2">
+            <span class="font-semibold text-slate-300">Cumprimento do Treino:</span>
+            <span class="font-bold text-emerald-400">
+              {{ getCompletedCount() }} de {{ workout.exercises.length }} exercícios feitos ({{ getProgressPercentage() }}%)
+            </span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+            <div
+              class="bg-gradient-to-r from-emerald-500 to-teal-400 h-2.5 rounded-full transition-all duration-500"
+              [style.width.%]="getProgressPercentage()"
+            ></div>
+          </div>
+        </div>
+
+        <!-- BANNER DE CELEBRAÇÃO (SE COMPLETO) -->
+        @if (workout.completed) {
+          <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm flex items-center gap-3 animate-fadeIn">
+            <span class="text-2xl">🏆</span>
+            <div>
+              <p class="font-bold text-white">Parabéns! Plano de treino concluído com sucesso!</p>
+              <p class="text-xs text-emerald-300 mt-0.5">Assinalaste todos os exercícios deste dia. O teu progresso foi registado na base de dados.</p>
+            </div>
+          </div>
+        }
+
+        <!-- Fundamentação Científica -->
+        <div class="bg-emerald-950/20 border border-emerald-500/20 rounded-xl p-4">
+          <h4 class="text-emerald-400 font-semibold text-xs uppercase tracking-wider mb-1.5 flex items-center gap-2">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+            </svg>
+            Estratégia do Dia
+          </h4>
+          <p class="text-slate-300 text-xs leading-relaxed">{{ workout.explanation }}</p>
+        </div>
+
+        <!-- LISTA DE EXERCÍCIOS INTERATIVA COM CHECKBOX -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-base font-bold text-white">Exercícios para Fazer em Casa:</h4>
+            <span class="text-xs text-slate-400">Clica para marcar como feito</span>
+          </div>
+
+          <div class="space-y-3">
+            @for (exercise of workout.exercises; track exercise.id) {
+              <div
+                (click)="toggleExercise(exercise.id)"
+                class="p-4 rounded-xl border transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-3 group"
+                [class.bg-emerald-950-30]="exercise.completed"
+                [class.border-emerald-500-60]="exercise.completed"
+                [class.bg-slate-950-60]="!exercise.completed"
+                [class.border-slate-800]="!exercise.completed"
+                [class.hover:border-slate-700]="!exercise.completed"
+              >
+                <!-- Lado Esquerdo: Checkbox + Nome + Instruções -->
+                <div class="flex items-start gap-3 flex-1">
+                  <!-- Checkbox Interativo -->
+                  <div
+                    class="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 border transition-all"
+                    [class.bg-emerald-500]="exercise.completed"
+                    [class.border-emerald-400]="exercise.completed"
+                    [class.border-slate-600]="!exercise.completed"
+                    [class.group-hover:border-emerald-500]="!exercise.completed"
+                  >
+                    @if (exercise.completed) {
+                      <svg class="w-4 h-4 text-slate-950 font-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                    }
+                  </div>
+
+                  <!-- Conteúdo -->
+                  <div>
+                    <h5
+                      class="text-sm font-semibold transition-colors"
+                      [class.text-emerald-300]="exercise.completed"
+                      [class.line-through]="exercise.completed"
+                      [class.text-white]="!exercise.completed"
+                    >
+                      {{ exercise.name }}
+                    </h5>
+
+                    @if (exercise.instructions) {
+                      <p class="text-xs text-slate-400 mt-1 leading-normal">
+                        <span class="font-medium text-slate-300">Técnica:</span> {{ exercise.instructions }}
+                      </p>
+                    }
+                  </div>
+                </div>
+
+                <!-- Lado Direito: Badges de Séries, Reps e Equipamento -->
+                <div class="flex flex-wrap items-center gap-2 shrink-0 md:justify-end pl-9 md:pl-0">
+                  <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-800 text-emerald-300 border border-slate-700">
+                    {{ exercise.sets }} Séries
+                  </span>
+                  <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-800 text-teal-300 border border-slate-700">
+                    {{ exercise.reps }}
+                  </span>
+                  @if (exercise.equipmentNeeded) {
+                    <span class="px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-950/40 text-emerald-300 border border-emerald-800/40">
+                      🏠 {{ exercise.equipmentNeeded }}
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- CASO O DIA SELECIONADO AINDA NÃO TENHA TREINO -->
+    @if (!currentWorkout() && !isGenerating()) {
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 md:p-8 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Novo Treino do Dia</span>
+              <span class="text-xs text-slate-400">• {{ selectedDate() }}</span>
+            </div>
+            <h3 class="text-xl font-bold text-white">Configura o Treino para este Dia</h3>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Escolhe o nível de intensidade (ex: Intermédio) e o tipo de treino focado em que grupo muscular queres fazer hoje.
+            </p>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 text-xl shrink-0">
+            🏠
+          </div>
+        </div>
+
+        <!-- 1. ESCOLHA DO NÍVEL (INICIANTE, INTERMÉDIO, AVANÇADO, ATLETA) -->
+        <div class="space-y-2">
+          <label class="block text-xs font-semibold text-slate-300">
+            1. Nível de Dificuldade / Intensidade:
+          </label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            @for (lvl of fitnessLevels; track lvl) {
+              <button
+                type="button"
+                (click)="setDailyFitnessLevel(lvl)"
+                [class]="dailyFitnessLevel() === lvl
+                  ? 'py-3 px-4 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border-2 border-emerald-500 shadow-md shadow-emerald-500/10 transition-all flex items-center justify-center gap-1.5'
+                  : 'py-3 px-4 rounded-xl text-xs font-medium bg-slate-950/80 text-slate-400 border border-slate-800 hover:border-slate-700 hover:text-slate-200 transition-all flex items-center justify-center gap-1.5'"
+              >
+                @if (dailyFitnessLevel() === lvl) {
+                  <span class="text-emerald-400">✓</span>
+                }
+                <span>{{ lvl }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- 2. ESCOLHA DO TIPO DE TREINO FOCADO EM QUE -->
+        <div class="space-y-2">
+          <label class="block text-xs font-semibold text-slate-300">
+            2. Tipo de Treino Focado em:
+          </label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            @for (opt of dailyFocusOptions; track opt.id) {
+              <button
+                type="button"
+                (click)="setDailyFocusArea(opt.id)"
+                [class]="dailyFocusArea() === opt.id
+                  ? 'p-4 rounded-xl text-left bg-emerald-500/15 border-2 border-emerald-500 shadow-lg shadow-emerald-500/10 transition-all relative'
+                  : 'p-4 rounded-xl text-left bg-slate-950/80 border border-slate-800 hover:border-slate-700 transition-all relative'"
+              >
+                <div class="flex items-center justify-between mb-1.5">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xl">{{ opt.icon }}</span>
+                    <span class="text-sm font-bold" [class]="dailyFocusArea() === opt.id ? 'text-emerald-300' : 'text-white'">
+                      {{ opt.label }}
+                    </span>
+                  </div>
+                  @if (dailyFocusArea() === opt.id) {
+                    <span class="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 text-xs flex items-center justify-center font-bold">✓</span>
+                  }
+                </div>
+                <p class="text-xs text-slate-400">{{ opt.desc }}</p>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- BOTÃO DE AÇÃO -->
+        <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+          <div class="text-xs text-slate-400 text-center sm:text-left">
+            Treino configurado: <strong class="text-emerald-300">{{ dailyFocusArea() }}</strong> (<span class="text-slate-300">{{ dailyFitnessLevel() }}</span>)
+          </div>
+
+          <button
+            type="button"
+            (click)="generateForSelectedDay()"
+            class="w-full sm:w-auto py-3 px-6 rounded-xl font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-lg shadow-emerald-500/25 transition-all text-sm flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+            <span>Gerar Treino de Casa com IA</span>
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- SPINNER DURANTE A GERAÇÃO DE TREINO -->
+    @if (isGenerating()) {
+      <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-10 text-center space-y-4 animate-pulse">
+        <svg class="animate-spin h-8 w-8 text-emerald-400 mx-auto" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p class="text-sm font-semibold text-white">{{ loadingStep() }}</p>
+        <p class="text-xs text-slate-400">A criar a rotina com objetos de casa e peso corporal...</p>
+      </div>
+    }
+  }
+
+</div>
