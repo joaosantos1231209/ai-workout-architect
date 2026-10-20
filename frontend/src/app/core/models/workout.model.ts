@@ -38,5 +38,13 @@ export interface WorkoutPlanResponse {
   explanation: string;
   workoutDate: string; // ISO date 'YYYY-MM-DD'
   completed: boolean;
+  perceivedDifficulty?: string;
   exercises: ExerciseItem[];
 }
+
+export interface UserStatsResponse {
+  streakDays: number;
+  totalCompletedWorkouts: number;
+  unlockedBadges: string[];
+}
+

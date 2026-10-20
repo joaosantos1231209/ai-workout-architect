@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { WorkoutPlanResponse } from '../models/workout.model';
+import { WorkoutPlanResponse, UserStatsResponse } from '../models/workout.model';
 
 @Injectable({
   providedIn: 'root'
@@ -54,4 +54,32 @@ export class WorkoutService {
       {}
     );
   }
+
+  /**
+   * Substitui um exercício específico por uma alternativa inteligente gerada pela IA do Gemini.
+   */
+  replaceExercise(workoutId: number, exerciseId: number): Observable<WorkoutPlanResponse> {
+    return this.http.post<WorkoutPlanResponse>(
+      `${this.baseUrl}/${workoutId}/exercises/${exerciseId}/replace`,
+      {}
+    );
+  }
+
+  /**
+   * Envia o feedback de dificuldade percebida ("Muito Fácil", "Ideal", "Muito Difícil") para calibrar treinos futuros.
+   */
+  submitFeedback(workoutId: number, perceivedDifficulty: string): Observable<WorkoutPlanResponse> {
+    return this.http.post<WorkoutPlanResponse>(
+      `${this.baseUrl}/${workoutId}/feedback`,
+      { perceivedDifficulty }
+    );
+  }
+
+  /**
+   * Obtém estatísticas de gamificação do atleta (streak de dias seguidos e conquistas desbloqueadas).
+   */
+  getUserStats(userId: number): Observable<UserStatsResponse> {
+    return this.http.get<UserStatsResponse>(`${this.baseUrl}/user/${userId}/stats`);
+  }
 }
+
