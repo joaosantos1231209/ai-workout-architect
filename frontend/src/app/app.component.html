@@ -1,0 +1,96 @@
+<div class="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+  <!-- BANNER PWA DE INSTALAÇÃO NO TELEMÓVEL (ANDROID / CHROME) -->
+  @if (pwaService.canInstall() && !pwaService.bannerDismissed()) {
+    <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white px-4 py-2.5 text-xs shadow-lg flex items-center justify-between gap-3 sticky top-0 z-[60] border-b border-emerald-400/30 animate-fadeIn">
+      <div class="flex items-center gap-2">
+        <span class="text-base">📲</span>
+        <div>
+          <span class="font-bold">Instala a App no teu Telemóvel:</span>
+          <span class="hidden sm:inline text-emerald-100 ml-1">Acesso direto pelo ecrã principal sem abrir o navegador!</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button
+          type="button"
+          (click)="pwaService.promptInstall()"
+          class="px-3 py-1.5 bg-slate-950/80 hover:bg-slate-950 text-white font-bold rounded-lg border border-white/20 transition-all shadow"
+        >
+          Instalar App
+        </button>
+        <button
+          type="button"
+          (click)="pwaService.dismiss()"
+          class="p-1.5 hover:bg-white/10 rounded-lg text-emerald-200 transition-colors"
+          title="Fechar"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- BANNER PWA PARA IPHONE / SAFARI (INSTRUÇÕES NATIVAS) -->
+  @if (pwaService.isIOS() && !pwaService.isStandalone() && !pwaService.bannerDismissed()) {
+    <div class="bg-slate-900 border-b border-emerald-500/30 text-slate-200 px-4 py-2.5 text-xs flex items-center justify-between gap-3 sticky top-0 z-[60] animate-fadeIn">
+      <div class="flex items-center gap-2">
+        <span class="text-base">📲</span>
+        <div>
+          <span class="font-bold text-emerald-400">Instalar no iPhone:</span>
+          <span class="text-slate-300 ml-1">Toca em <strong>Partilhar</strong> e depois em <strong>"Adicionar ao Ecrã Principal"</strong>.</span>
+        </div>
+      </div>
+      <button
+        type="button"
+        (click)="pwaService.dismiss()"
+        class="text-slate-400 hover:text-white p-1"
+      >
+        ✕
+      </button>
+    </div>
+  }
+
+  <!-- Barra de Navegação Superior -->
+  <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <svg class="w-5 h-5 text-slate-950 font-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+        </div>
+        <div>
+          <span class="font-bold text-base tracking-tight text-white">AI Workout Architect</span>
+          <span class="hidden sm:inline-block ml-2 px-2.5 py-0.5 text-[10px] uppercase tracking-wider font-semibold bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20">Treino em Casa</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 text-xs text-slate-400">
+        @if (pwaService.canInstall()) {
+          <button
+            type="button"
+            (click)="pwaService.promptInstall()"
+            class="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all font-semibold flex items-center gap-1.5"
+          >
+            <span>📲 Instalar App</span>
+          </button>
+        }
+        <div class="hidden sm:flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Spring Boot 3.3 + Gemini IA</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Área Principal -->
+  <main class="flex-1 pb-10">
+    <router-outlet></router-outlet>
+  </main>
+
+  <!-- Rodapé -->
+  <footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
+    <div class="max-w-6xl mx-auto px-4">
+      AI Workout Architect &bull; Treino Inteligente em Casa &bull; PWA Mobile Ready &bull; Angular 21 &bull; Spring Boot 3.3 &bull; PostgreSQL
+    </div>
+  </footer>
+</div>
