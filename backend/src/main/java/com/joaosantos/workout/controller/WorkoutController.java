@@ -13,6 +13,8 @@ import com.joaosantos.workout.repository.WorkoutPlanRepository;
 import com.joaosantos.workout.service.AiWorkoutService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.joaosantos.workout.dto.FeedbackRequest;
+import com.joaosantos.workout.dto.UserStatsResponse;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -92,8 +95,13 @@ public class WorkoutController {
             workoutPlanRepository.flush();
         }
 
-        // Sintetizar com IA
-        WorkoutPlanRecord planRecord = aiWorkoutService.generateWorkoutForUser(profile, fitnessLevel, focusArea);
+        // Obter último feedback de dificuldade do atleta para adaptação inteligente da IA
+        String lastFeedback = workoutPlanRepository.findFirstByUserProfileIdAndCompletedTrueOrderByWorkoutDateDesc(profile.getId())
+                .map(WorkoutPlan::getPerceivedDifficulty)
+                .orElse(null);
+
+        // Sintetizar com IA considerando feedback adaptativo
+        WorkoutPlanRecord planRecord = aiWorkoutService.generateWorkoutForUser(profile, fitnessLevel, focusArea, lastFeedback);
 
         // Mapear para entidade JPA
         WorkoutPlan workoutPlan = WorkoutPlan.builder()
@@ -180,6 +188,105 @@ public class WorkoutController {
         return ResponseEntity.ok(toResponse(plan));
     }
 
+    /**
+     * Substitui um exercício específico por uma alternativa gerada pela IA do Google Gemini.
+     */
+    @PostMapping("/{workoutId}/exercises/{exerciseId}/replace")
+    @Transactional
+    public ResponseEntity<WorkoutPlanResponse> replaceExercise(
+            @PathVariable Long workoutId,
+            @PathVariable Long exerciseId
+    ) {
+        WorkoutPlan plan = workoutPlanRepository.findById(workoutId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Plano de treino não encontrado."));
+
+        Exercise exercise = exerciseRepository.findById(exerciseId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exercício não encontrado."));
+
+        UserProfile profile = plan.getUserProfile();
+        ExerciseRecord replacement = aiWorkoutService.replaceExercise(exercise, plan, profile);
+
+        exercise.setName(replacement.name());
+        exercise.setSets(replacement.sets());
+        exercise.setReps(replacement.reps());
+        exercise.setEquipmentNeeded(replacement.equipmentNeeded());
+        exercise.setInstructions(replacement.instructions());
+        exercise.setCompleted(false);
+
+        exerciseRepository.save(exercise);
+        log.info("Exercício ID: {} substituído por: '{}'", exerciseId, replacement.name());
+
+        return ResponseEntity.ok(toResponse(plan));
+    }
+
+    /**
+     * Regista a percepção de dificuldade do atleta no final do treino ("Muito Fácil", "Ideal", "Muito Difícil").
+     */
+    @PostMapping("/{workoutId}/feedback")
+    @Transactional
+    public ResponseEntity<WorkoutPlanResponse> submitFeedback(
+            @PathVariable Long workoutId,
+            @RequestBody FeedbackRequest request
+    ) {
+        WorkoutPlan plan = workoutPlanRepository.findById(workoutId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Plano de treino não encontrado."));
+
+        plan.setPerceivedDifficulty(request.perceivedDifficulty());
+        workoutPlanRepository.save(plan);
+        log.info("Feedback de dificuldade '{}' guardado para o treino ID: {}", request.perceivedDifficulty(), workoutId);
+
+        return ResponseEntity.ok(toResponse(plan));
+    }
+
+    /**
+     * Consulta as estatísticas de gamificação do atleta (streak de dias seguidos e conquistas).
+     */
+    @GetMapping("/user/{userId}/stats")
+    @Transactional(readOnly = true)
+    public ResponseEntity<UserStatsResponse> getUserStats(@PathVariable Long userId) {
+        List<WorkoutPlan> completedPlans = workoutPlanRepository.findByUserProfileIdAndCompletedTrueOrderByWorkoutDateDesc(userId);
+        int totalCompleted = completedPlans.size();
+
+        // Calcular streak de dias seguidos
+        int streak = 0;
+        LocalDate today = LocalDate.now();
+        LocalDate checkDate = today;
+
+        boolean hasToday = completedPlans.stream().anyMatch(p -> p.getWorkoutDate().equals(today));
+        if (!hasToday) {
+            checkDate = today.minusDays(1);
+        }
+
+        for (WorkoutPlan plan : completedPlans) {
+            if (plan.getWorkoutDate().equals(checkDate)) {
+                streak++;
+                checkDate = checkDate.minusDays(1);
+            } else if (plan.getWorkoutDate().isBefore(checkDate)) {
+                break;
+            }
+        }
+
+        // Conquistas desbloqueadas
+        List<String> badges = new ArrayList<>();
+        if (totalCompleted >= 1) {
+            badges.add("🥉 Primeiro Passo: Completaste o teu 1º treino em casa!");
+        }
+        if (streak >= 3) {
+            badges.add("🔥 Chama Acesa: 3 dias consecutivos a treinar!");
+        }
+        if (streak >= 7) {
+            badges.add("⚡ Semana de Ferro: 7 dias seguidos sem falhar!");
+        }
+        if (totalCompleted >= 5) {
+            badges.add("💪 Guerreiro do Lar: 5 treinos em casa completados!");
+        }
+        if (totalCompleted >= 10) {
+            badges.add("🏆 Mestre da Consistência: 10 treinos no historial!");
+        }
+
+        return ResponseEntity.ok(new UserStatsResponse(streak, totalCompleted, badges));
+    }
+
     private WorkoutPlanResponse toResponse(WorkoutPlan plan) {
         List<ExerciseDto> exerciseDtos = plan.getExercises().stream()
                 .map(ex -> new ExerciseDto(
@@ -200,6 +307,7 @@ public class WorkoutController {
                 plan.getExplanation(),
                 plan.getWorkoutDate(),
                 plan.isCompleted(),
+                plan.getPerceivedDifficulty(),
                 exerciseDtos
         );
     }

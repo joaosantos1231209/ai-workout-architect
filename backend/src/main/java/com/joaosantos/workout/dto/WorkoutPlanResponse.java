@@ -13,6 +13,7 @@ public record WorkoutPlanResponse(
         String explanation,
         LocalDate workoutDate,
         boolean completed,
+        String perceivedDifficulty,
         List<ExerciseDto> exercises
 ) {
 }

@@ -55,6 +55,9 @@ public class WorkoutPlan {
     @Builder.Default
     private boolean completed = false;
 
+    @Column(name = "perceived_difficulty")
+    private String perceivedDifficulty;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_profile_id", nullable = false)
     @ToString.Exclude

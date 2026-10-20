@@ -2,7 +2,9 @@ package com.joaosantos.workout.service;
 
 import com.joaosantos.workout.dto.ExerciseRecord;
 import com.joaosantos.workout.dto.WorkoutPlanRecord;
+import com.joaosantos.workout.model.Exercise;
 import com.joaosantos.workout.model.UserProfile;
+import com.joaosantos.workout.model.WorkoutPlan;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.converter.BeanOutputConverter;
@@ -41,26 +43,51 @@ public class AiWorkoutService {
      * @return WorkoutPlanRecord estruturado em português
      */
     public WorkoutPlanRecord generateWorkoutForUser(UserProfile profile) {
-        return generateWorkoutForUser(profile, null, null);
+        return generateWorkoutForUser(profile, null, null, null);
+    }
+
+    public WorkoutPlanRecord generateWorkoutForUser(UserProfile profile, String customFitnessLevel, String customFocusArea) {
+        return generateWorkoutForUser(profile, customFitnessLevel, customFocusArea, null);
     }
 
     /**
      * Gera um plano de treino personalizado em casa para uma sessão diária específica,
-     * permitindo ao atleta escolher o nível (ex: Intermédio) e o foco específico daquele dia.
-     *
-     * @param profile dados e objetivos gerais do atleta
-     * @param customFitnessLevel nível escolhido para o dia (ex: Iniciante, Intermédio, Avançado)
-     * @param customFocusArea tipo de treino ou foco da sessão (ex: Pernas, Braços/Peito, Core, Full Body, Cardio HIIT)
-     * @return WorkoutPlanRecord estruturado em português
+     * permitindo ao atleta escolher o nível (ex: Intermédio), o foco específico daquele dia,
+     * e ajustando a progressão com base no feedback percebido do treino anterior.
      */
-    public WorkoutPlanRecord generateWorkoutForUser(UserProfile profile, String customFitnessLevel, String customFocusArea) {
+    public WorkoutPlanRecord generateWorkoutForUser(
+            UserProfile profile,
+            String customFitnessLevel,
+            String customFocusArea,
+            String previousFeedback
+    ) {
         String effectiveLevel = (customFitnessLevel != null && !customFitnessLevel.isBlank())
                 ? customFitnessLevel : (profile.getFitnessLevel() != null ? profile.getFitnessLevel() : "Intermédio");
         String effectiveFocus = (customFocusArea != null && !customFocusArea.isBlank())
                 ? customFocusArea : (profile.getPrimaryGoal() != null ? profile.getPrimaryGoal() : "Corpo Inteiro (Full Body)");
 
-        log.info("A iniciar síntese de treino diário para {} | Nível: {} | Foco: {}",
-                profile.getName(), effectiveLevel, effectiveFocus);
+        log.info("A iniciar síntese de treino diário para {} | Nível: {} | Foco: {} | Feedback anterior: {}",
+                profile.getName(), effectiveLevel, effectiveFocus, previousFeedback);
+
+        String adaptiveGuidance = "";
+        if ("Muito Fácil".equalsIgnoreCase(previousFeedback)) {
+            adaptiveGuidance = """
+                    NOTA DE PROGRESSÃO ADAPTATIVA:
+                    No treino anterior o atleta reportou que o estímulo foi 'Muito Fácil'.
+                    Aumenta ligeiramente o desafio, seja com variações mais exigentes de exercícios corporais, mais repetições, menor tempo de descanso ou sobrecarga caseira adicional (mochila com mais peso).
+                    """;
+        } else if ("Muito Difícil".equalsIgnoreCase(previousFeedback)) {
+            adaptiveGuidance = """
+                    NOTA DE PROGRESSÃO ADAPTATIVA:
+                    No treino anterior o atleta reportou que o estímulo foi 'Muito Difícil'.
+                    Ajusta o treino para um ritmo mais sustentável, com exercícios de menor impacto articular, instruções focadas em técnica limpa, pausas conscientes e recuperação controlada.
+                    """;
+        } else if ("Ideal".equalsIgnoreCase(previousFeedback)) {
+            adaptiveGuidance = """
+                    NOTA DE PROGRESSÃO ADAPTATIVA:
+                    No treino anterior o atleta considerou o treino 'Ideal'. Mantém uma progressão linear equilibrada e estável.
+                    """;
+        }
 
         BeanOutputConverter<WorkoutPlanRecord> outputConverter = new BeanOutputConverter<>(WorkoutPlanRecord.class);
 
@@ -71,6 +98,8 @@ public class AiWorkoutService {
                 - Idade: %d
                 - Nível de Condicionamento para esta sessão: %s
                 - Área de Foco / Tipo de Treino desta sessão: %s
+
+                %s
 
                 REGRAS OBRIGATÓRIAS:
                 1. O treino é EXCLUSIVAMENTE para fazer EM CASA.
@@ -86,6 +115,7 @@ public class AiWorkoutService {
                 profile.getAge(),
                 effectiveLevel,
                 effectiveFocus,
+                adaptiveGuidance,
                 effectiveFocus,
                 effectiveFocus,
                 effectiveLevel,
@@ -115,6 +145,110 @@ public class AiWorkoutService {
             log.warn("Gemini API em sobrecarga temporária ({}). A aplicar motor de síntese resiliente em casa.",
                     ex.getMessage());
             return generateResilientHomeFallbackPlan(profile, effectiveLevel, effectiveFocus);
+        }
+    }
+
+    /**
+     * Substitui um exercício específico do plano por uma alternativa equivalente em casa,
+     * utilizando a IA do Google Gemini.
+     */
+    public ExerciseRecord replaceExercise(Exercise currentExercise, WorkoutPlan plan, UserProfile profile) {
+        log.info("A solicitar substituição por IA para o exercício '{}' do plano '{}' ({})",
+                currentExercise.getName(), plan.getTitle(), plan.getFocusArea());
+
+        BeanOutputConverter<ExerciseRecord> outputConverter = new BeanOutputConverter<>(ExerciseRecord.class);
+
+        String userPrompt = """
+                És um treinador pessoal de elite e especialista em treino funcional em casa (Home Workouts).
+                O atleta precisa de substituir um exercício do seu treino de hoje por uma alternativa:
+                - Exercício a substituir: %s
+                - Séries atuais: %d
+                - Repetições atuais: %s
+                - Equipamento doméstico atual: %s
+                - Foco / Grupo Muscular da sessão: %s
+                - Nível do Atleta: %s
+
+                REGRAS OBRIGATÓRIAS:
+                1. Devolve EXATAMENTE UM (1) novo exercício alternativo eficaz para o mesmo grupo muscular.
+                2. O exercício deve ser COMPLETAMENTE DIFERENTE de "%s".
+                3. É EXCLUSIVAMENTE para fazer EM CASA (apenas peso corporal ou objetos domésticos: cadeira, sofá, toalha, garrafas de água, mochila com livros, tapete, chão, parede).
+                4. É ESTRITAMENTE PROIBIDO sugerir pesos de ginásio, halteres, barras ou máquinas comerciais.
+                5. A resposta DEVE SER 100%% EM PORTUGUÊS (nome claro, número de séries coerente, repetições/tempo, equipamento caseiro e instruções de técnica).
+
+                %s
+                """.formatted(
+                currentExercise.getName(),
+                currentExercise.getSets(),
+                currentExercise.getReps(),
+                currentExercise.getEquipmentNeeded(),
+                plan.getFocusArea(),
+                profile.getFitnessLevel(),
+                currentExercise.getName(),
+                outputConverter.getFormat()
+        );
+
+        try {
+            String response = this.chatClient.prompt()
+                    .user(userPrompt)
+                    .call()
+                    .content();
+
+            ExerciseRecord replacement = outputConverter.convert(response);
+            log.info("Exercício substituído por IA com sucesso: '{}'", replacement.name());
+            return replacement;
+        } catch (Exception ex) {
+            log.warn("Falha na chamada Gemini para substituir exercício ({}). A aplicar alternativa em casa.", ex.getMessage());
+            return generateResilientExerciseFallback(currentExercise, plan.getFocusArea());
+        }
+    }
+
+    /**
+     * Fornece um exercício alternativo resiliente caso a IA esteja temporariamente indisponível.
+     */
+    private ExerciseRecord generateResilientExerciseFallback(Exercise current, String focusArea) {
+        String name = current.getName().toLowerCase();
+        String focus = focusArea != null ? focusArea.toLowerCase() : "";
+
+        if (name.contains("flexão") || name.contains("peito") || name.contains("push")) {
+            return new ExerciseRecord(
+                    "Fundos de Tríceps e Peitoral no Sofá / Cadeira Firme",
+                    4,
+                    "10 a 12 reps",
+                    "Sofá ou Cadeira estável",
+                    "Apoia as palmas na borda do sofá. Desce os cotovelos a 90 graus mantendo as costas alinhadas e empurra com força para subir."
+            );
+        } else if (name.contains("agacha") || name.contains("squat") || name.contains("bulg")) {
+            return new ExerciseRecord(
+                    "Passadas (Lunges) com Carga de Mochila ao Peito",
+                    4,
+                    "12 reps por perna",
+                    "Mochila com livros ou Garrafa de água",
+                    "Dá um passo largo à frente, desce o joelho de trás quase até ao chão mantendo o tronco ereto e volta à posição inicial com o calcanhar frontal."
+            );
+        } else if (name.contains("prancha") || name.contains("plank") || name.contains("abdom")) {
+            return new ExerciseRecord(
+                    "Dead Bug (Inseto Morto) com Contração Abdominal",
+                    3,
+                    "12 reps alternadas",
+                    "Tapete no chão",
+                    "Deitado de costas, estica o braço direito e a perna esquerda ao mesmo tempo, mantendo a lombar colada ao tapete sem arquear as costas."
+            );
+        } else if (name.contains("remada") || name.contains("toalha") || name.contains("costa")) {
+            return new ExerciseRecord(
+                    "Superman no Chão com Pausa de 2 Segundos",
+                    4,
+                    "12 a 15 reps",
+                    "Tapete ou toalha no chão",
+                    "Deitado de barriga para baixo, eleva simultaneamente o peito e as coxas do chão, contraindo as omoplatas, lombar e glúteos no ponto mais alto."
+            );
+        } else {
+            return new ExerciseRecord(
+                    "Agachamento com Salto Suave (Jump Squat)",
+                    4,
+                    "10 a 12 reps",
+                    "Apenas Peso Corporal",
+                    "Agacha até à paralela e salta suavemente na subida, amortecendo com a ponta dos pés para proteger as articulações."
+            );
         }
     }
 

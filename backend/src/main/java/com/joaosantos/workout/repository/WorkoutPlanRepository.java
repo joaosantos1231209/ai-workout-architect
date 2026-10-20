@@ -23,4 +23,14 @@ public interface WorkoutPlanRepository extends JpaRepository<WorkoutPlan, Long> 
      * Localiza o plano de treino do utilizador para uma data específica (ex: hoje).
      */
     Optional<WorkoutPlan> findByUserProfileIdAndWorkoutDate(Long userProfileId, LocalDate workoutDate);
+
+    /**
+     * Devolve todos os planos de treino concluídos ordenados por data decrescente (para streak e stats).
+     */
+    List<WorkoutPlan> findByUserProfileIdAndCompletedTrueOrderByWorkoutDateDesc(Long userProfileId);
+
+    /**
+     * Devolve o último plano concluído do utilizador (para calibrar o próximo treino por IA).
+     */
+    Optional<WorkoutPlan> findFirstByUserProfileIdAndCompletedTrueOrderByWorkoutDateDesc(Long userProfileId);
 }
