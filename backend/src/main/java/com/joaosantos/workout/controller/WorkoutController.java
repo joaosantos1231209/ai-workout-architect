@@ -107,6 +107,7 @@ public class WorkoutController {
         WorkoutPlan workoutPlan = WorkoutPlan.builder()
                 .title(planRecord.title())
                 .focusArea(planRecord.focusArea())
+                .warmupRoutine(planRecord.warmupRoutine())
                 .explanation(planRecord.explanation())
                 .workoutDate(targetDate)
                 .completed(false)
@@ -288,6 +289,11 @@ public class WorkoutController {
     }
 
     private WorkoutPlanResponse toResponse(WorkoutPlan plan) {
+        String effectiveWarmup = plan.getWarmupRoutine();
+        if (effectiveWarmup == null || effectiveWarmup.isBlank()) {
+            effectiveWarmup = getDynamicWarmupFallback(plan.getFocusArea());
+        }
+
         List<ExerciseDto> exerciseDtos = plan.getExercises().stream()
                 .map(ex -> new ExerciseDto(
                         ex.getId(),
@@ -304,11 +310,29 @@ public class WorkoutController {
                 plan.getId(),
                 plan.getTitle(),
                 plan.getFocusArea(),
+                effectiveWarmup,
                 plan.getExplanation(),
                 plan.getWorkoutDate(),
                 plan.isCompleted(),
                 plan.getPerceivedDifficulty(),
                 exerciseDtos
         );
+    }
+
+    private String getDynamicWarmupFallback(String focusArea) {
+        String focus = focusArea != null ? focusArea.toLowerCase() : "";
+        if (focus.contains("superior") || focus.contains("peito") || focus.contains("braço") || focus.contains("costa")) {
+            return "1. Rotação de Ombros e Pulsos (2x 30s) • 2. Círculos com os Braços frente/trás (2x 20 reps) • 3. Flexões inclinadas suaves na parede para ativação do peitoral e escápulas (2x 10 reps) • 4. Alongamento dinâmico de peitoral no batente da porta (30s por lado).";
+        } else if (focus.contains("inferior") || focus.contains("perna") || focus.contains("glúteo")) {
+            return "1. Rotação Articular de Tornozelos e Joelhos (2x 30s) • 2. Balanço Dinâmico de Pernas (2x 10 reps por perna) • 3. Agachamento Profundo com pausa de 2 segundos no fundo (2x 8 reps) • 4. Ponte de Glúteos no chão para ativação neuromuscular (2x 12 reps).";
+        } else if (focus.contains("core") || focus.contains("abdominal") || focus.contains("abdómen")) {
+            return "1. Postura Gato-Vaca para mobilidade da coluna vertebral (2x 10 ciclos) • 2. Bird-Dog (Cão-Pássaro) para ativação do core e lombar (2x 8 reps por lado) • 3. Dead Bug controlado (2x 10 reps) • 4. Prancha isométrica de joelhos (2x 20s).";
+        } else if (focus.contains("cardio") || focus.contains("hiit") || focus.contains("caloria")) {
+            return "1. Marcha no lugar com elevação suave dos joelhos (60s) • 2. Rotações Dinâmicas da Anca e Tronco (30s) • 3. Polichinelos de ritmo leve a moderado (45s) • 4. Agachamentos livres suaves de aquecimento (12 reps).";
+        } else if (focus.contains("mobilidade") || focus.contains("alongamento") || focus.contains("recuperação")) {
+            return "1. Respiração diafragmática profunda em decúbito dorsal (1 min) • 2. Rotações lentas do pescoço e ombros (2x 30s) • 3. Postura da Criança com respiração relaxada (60s) • 4. Rotações torácicas em quatro apoios (8 reps por lado).";
+        } else {
+            return "1. Marcha com elevação de joelhos e rotação de braços (60s) • 2. Inchworm (caminhada das mãos à prancha e retorno) (2x 5 reps) • 3. Agachamentos com peso corporal com rotação do tronco (2x 8 reps) • 4. Rotação articular completa de ombros e anca (30s).";
+        }
     }
 }

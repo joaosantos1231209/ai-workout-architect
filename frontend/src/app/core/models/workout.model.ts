@@ -35,6 +35,7 @@ export interface WorkoutPlanResponse {
   id: number;
   title: string;
   focusArea: string;
+  warmupRoutine?: string;
   explanation: string;
   workoutDate: string; // ISO date 'YYYY-MM-DD'
   completed: boolean;

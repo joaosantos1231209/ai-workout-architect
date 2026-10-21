@@ -5,6 +5,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { WorkoutService } from '../../core/services/workout.service';
 import { ReminderService } from '../../core/services/reminder.service';
 import { UserProfile, WorkoutPlanResponse, AuthRequest, RegisterRequest, UserStatsResponse } from '../../core/models/workout.model';
+import { environment } from '../../../environments/environment';
 
 export interface DaySchedule {
   date: string; // 'YYYY-MM-DD'
@@ -29,6 +30,12 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
 
   // Gestão de Abas da Aplicação ('workouts' | 'streaks' | 'profile')
   activeTab = signal<'workouts' | 'streaks' | 'profile'>('workouts');
+
+  // Versão Dinâmica da Aplicação
+  readonly appVersion = environment.version || 'v1.3.0';
+
+  // Estados de Aquecimento Pré-Treino
+  warmupCompleted = signal<boolean>(false);
 
   // Estados de Gamificação e Estatísticas
   userStats = signal<UserStatsResponse | null>(null);
@@ -246,6 +253,10 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
     );
   }
 
+  toggleWarmup(): void {
+    this.warmupCompleted.update((val) => !val);
+  }
+
   // --- GESTÃO SEMANAL E TREINOS ---
 
   buildWeekSchedule(): void {
@@ -358,6 +369,7 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
   selectDay(day: DaySchedule): void {
     this.selectedDate.set(day.date);
     this.currentWorkout.set(day.workout || null);
+    this.warmupCompleted.set(day.workout?.completed ? true : false);
     this.showRegenerateOptions.set(false);
     this.errorMessage.set(null);
 

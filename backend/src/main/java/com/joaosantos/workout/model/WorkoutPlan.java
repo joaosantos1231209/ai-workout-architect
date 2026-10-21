@@ -44,6 +44,9 @@ public class WorkoutPlan {
     @Column(name = "focus_area", nullable = false)
     private String focusArea;
 
+    @Column(name = "warmup_routine", length = 2000)
+    private String warmupRoutine;
+
     @Column(length = 2000)
     private String explanation;
 

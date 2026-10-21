@@ -10,6 +10,7 @@ public record WorkoutPlanResponse(
         Long id,
         String title,
         String focusArea,
+        String warmupRoutine,
         String explanation,
         LocalDate workoutDate,
         boolean completed,

@@ -603,6 +603,66 @@
               <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">{{ workout.explanation }}</p>
             </div>
 
+            <!-- ================================================================= -->
+            <!-- AQUECIMENTO OBRIGATÓRIO PRÉ-TREINO (ESPECÍFICO PARA ESTA SESSÃO) -->
+            <!-- ================================================================= -->
+            @if (workout.warmupRoutine) {
+              <div
+                class="rounded-2xl border transition-all p-4 sm:p-5 space-y-3"
+                [class]="warmupCompleted()
+                  ? 'bg-amber-950/20 border-amber-500/40 shadow-sm'
+                  : 'bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-900 border-amber-500/50 shadow-lg shadow-amber-500/10'"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="text-xl sm:text-2xl">🔥</span>
+                      <h4 class="text-base sm:text-lg font-extrabold text-amber-300 tracking-tight">
+                        Aquecimento Específico Pré-Treino
+                      </h4>
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                        5 a 8 min
+                      </span>
+                    </div>
+                    <p class="text-xs text-slate-300">
+                      Preparado pela IA exclusivamente para os músculos e articulações que vais trabalhar neste treino:
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    (click)="toggleWarmup()"
+                    class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer select-none"
+                    [class]="warmupCompleted()
+                      ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                      : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40'"
+                  >
+                    @if (warmupCompleted()) {
+                      <span>✓ Aquecido</span>
+                    } @else {
+                      <span>Marcar Feito</span>
+                    }
+                  </button>
+                </div>
+
+                <!-- Detalhes dos Exercícios de Aquecimento -->
+                <div class="p-3.5 rounded-xl bg-slate-950/80 border border-amber-500/20 text-xs sm:text-sm text-slate-200 leading-relaxed space-y-1.5">
+                  <p class="font-bold text-amber-300 flex items-center gap-1.5">
+                    <span>⚡</span> Movimentos de Mobilidade & Ativação:
+                  </p>
+                  <p class="text-slate-300 leading-normal whitespace-pre-line">
+                    {{ workout.warmupRoutine }}
+                  </p>
+                </div>
+
+                @if (!warmupCompleted()) {
+                  <div class="text-[11px] text-amber-300/80 flex items-center gap-1.5">
+                    <span>💡</span> Faz cada movimento com calma e respiração controlada antes de iniciares os exercícios abaixo.
+                  </div>
+                }
+              </div>
+            }
+
             <!-- LISTA DE EXERCÍCIOS INTERATIVA (DESIGN MOBILE OTIMIZADO) -->
             <div class="space-y-3">
               <div class="flex items-center justify-between">
@@ -1071,7 +1131,7 @@
         <div class="pt-8 pb-4 text-center border-t border-slate-800/80 space-y-1.5">
           <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-900 border border-slate-800 text-slate-300 shadow-sm">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            AI Workout Architect v1.2.0
+            AI Workout Architect {{ appVersion }}
           </div>
           <p class="text-xs text-slate-400">
             Build Produção PWA • Desenvolvido para Treino em Casa
