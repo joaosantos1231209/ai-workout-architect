@@ -271,6 +271,49 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
     this.weekDays.set(days);
   }
 
+  getTodayDate(): string {
+    return this.formatDate(new Date());
+  }
+
+  getSelectedDaySchedule(): DaySchedule | undefined {
+    return this.weekDays().find((d) => d.date === this.selectedDate());
+  }
+
+  getYesterdaySchedule(): DaySchedule | undefined {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yStr = this.formatDate(yesterday);
+    return this.weekDays().find((d) => d.date === yStr);
+  }
+
+  selectToday(): void {
+    const today = this.weekDays().find((d) => d.isToday);
+    if (today) {
+      this.selectDay(today);
+    }
+  }
+
+  selectYesterday(): void {
+    const yesterday = this.getYesterdaySchedule();
+    if (yesterday) {
+      this.selectDay(yesterday);
+    }
+  }
+
+  getSelectedDayFormatted(): string {
+    const schedule = this.getSelectedDaySchedule();
+    if (!schedule) return this.selectedDate();
+    const parts = schedule.date.split('-');
+    const day = parts[2];
+    const monthNames = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+    const month = monthNames[parseInt(parts[1], 10) - 1];
+    const label = `${schedule.dayName}, ${day} de ${month}`;
+    return schedule.isToday ? `${label} (Hoje)` : label;
+  }
+
   loadUserWorkouts(): void {
     const user = this.authService.currentUser();
     if (!user?.id) return;
