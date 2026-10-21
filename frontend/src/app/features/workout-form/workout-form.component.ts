@@ -27,9 +27,64 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly cdr = inject(ChangeDetectorRef);
 
+  // Gestão de Abas da Aplicação ('workouts' | 'streaks' | 'profile')
+  activeTab = signal<'workouts' | 'streaks' | 'profile'>('workouts');
+
   // Estados de Gamificação e Estatísticas
   userStats = signal<UserStatsResponse | null>(null);
+  allUserWorkouts = signal<WorkoutPlanResponse[]>([]);
   showBadgesModal = signal<boolean>(false);
+
+  readonly allBadges = [
+    {
+      id: 'first_step',
+      icon: '🥉',
+      title: 'Primeiro Passo',
+      desc: 'Completaste o teu 1º treino em casa com sucesso',
+      target: 1,
+      type: 'workouts'
+    },
+    {
+      id: 'flame',
+      icon: '🔥',
+      title: 'Chama Acesa',
+      desc: '3 dias consecutivos de treino sem falhar',
+      target: 3,
+      type: 'streak'
+    },
+    {
+      id: 'home_warrior',
+      icon: '💪',
+      title: 'Guerreiro do Lar',
+      desc: '5 treinos em casa completados',
+      target: 5,
+      type: 'workouts'
+    },
+    {
+      id: 'iron_week',
+      icon: '⚡',
+      title: 'Semana de Ferro',
+      desc: '7 dias seguidos de foco total',
+      target: 7,
+      type: 'streak'
+    },
+    {
+      id: 'master',
+      icon: '🏆',
+      title: 'Mestre da Consistência',
+      desc: '10 treinos no teu historial',
+      target: 10,
+      type: 'workouts'
+    },
+    {
+      id: 'legend',
+      icon: '👑',
+      title: 'Lenda do Treino',
+      desc: '30 treinos registados e cumpridos',
+      target: 30,
+      type: 'workouts'
+    }
+  ];
 
   // Estados de IA & Feedback
   replacingExerciseId = signal<number | null>(null);
@@ -156,8 +211,39 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
   logout(): void {
     this.authService.logout();
     this.currentWorkout.set(null);
+    this.allUserWorkouts.set([]);
+    this.activeTab.set('workouts');
     this.buildWeekSchedule();
     this.cdr.detectChanges();
+  }
+
+  setActiveTab(tab: 'workouts' | 'streaks' | 'profile'): void {
+    this.activeTab.set(tab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    this.cdr.detectChanges();
+  }
+
+  isBadgeUnlocked(badge: any): boolean {
+    const stats = this.userStats();
+    if (!stats) return false;
+    if (badge.type === 'streak') {
+      return (stats.streakDays || 0) >= badge.target;
+    }
+    return (stats.totalCompletedWorkouts || 0) >= badge.target;
+  }
+
+  getBadgeProgress(badge: any): number {
+    const stats = this.userStats();
+    if (!stats) return 0;
+    const current = badge.type === 'streak' ? (stats.streakDays || 0) : (stats.totalCompletedWorkouts || 0);
+    return Math.min(100, Math.round((current / badge.target) * 100));
+  }
+
+  sendTestNotification(): void {
+    this.reminderService.triggerNotification(
+      'AI Workout Architect 💪',
+      'O teu sistema de lembretes está a funcionar perfeitamente! Lembra-te: o teu treino espera por ti às 09:30.'
+    );
   }
 
   // --- GESTÃO SEMANAL E TREINOS ---
@@ -193,6 +279,7 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
 
     this.workoutService.getUserWorkouts(user.id).subscribe({
       next: (workouts) => {
+        this.allUserWorkouts.set(workouts);
         const days = this.weekDays().map((day) => {
           const match = workouts.find((w) => w.workoutDate === day.date);
           return { ...day, workout: match };
