@@ -31,7 +31,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -248,22 +250,32 @@ public class WorkoutController {
         List<WorkoutPlan> completedPlans = workoutPlanRepository.findByUserProfileIdAndCompletedTrueOrderByWorkoutDateDesc(userId);
         int totalCompleted = completedPlans.size();
 
-        // Calcular streak de dias seguidos
+        // Calcular streak de dias com tolerância de 1 dia de recuperação fisiológica
         int streak = 0;
         LocalDate today = LocalDate.now();
-        LocalDate checkDate = today;
 
-        boolean hasToday = completedPlans.stream().anyMatch(p -> p.getWorkoutDate().equals(today));
-        if (!hasToday) {
-            checkDate = today.minusDays(1);
-        }
+        List<LocalDate> distinctDates = completedPlans.stream()
+                .map(WorkoutPlan::getWorkoutDate)
+                .distinct()
+                .sorted(Comparator.reverseOrder())
+                .toList();
 
-        for (WorkoutPlan plan : completedPlans) {
-            if (plan.getWorkoutDate().equals(checkDate)) {
-                streak++;
-                checkDate = checkDate.minusDays(1);
-            } else if (plan.getWorkoutDate().isBefore(checkDate)) {
-                break;
+        if (!distinctDates.isEmpty()) {
+            LocalDate mostRecent = distinctDates.get(0);
+            long daysSinceLast = ChronoUnit.DAYS.between(mostRecent, today);
+            if (daysSinceLast <= 2) {
+                streak = 1;
+                LocalDate previous = mostRecent;
+                for (int i = 1; i < distinctDates.size(); i++) {
+                    LocalDate current = distinctDates.get(i);
+                    long gap = ChronoUnit.DAYS.between(current, previous);
+                    if (gap <= 2) {
+                        streak++;
+                        previous = current;
+                    } else {
+                        break;
+                    }
+                }
             }
         }
 

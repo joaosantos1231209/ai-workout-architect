@@ -14,6 +14,17 @@ export class AuthService {
   private readonly STORAGE_KEY = 'ai_workout_user';
   currentUser = signal<UserProfile | null>(this.loadUserFromStorage());
 
+  constructor() {
+    this.pingServer();
+  }
+
+  pingServer(): void {
+    this.http.get(`${this.baseUrl}/ping`, { responseType: 'text' }).subscribe({
+      next: () => {},
+      error: () => {}
+    });
+  }
+
   login(credentials: AuthRequest): Observable<UserProfile> {
     return this.http.post<UserProfile>(`${this.baseUrl}/login`, credentials).pipe(
       tap((user) => this.setCurrentUser(user))

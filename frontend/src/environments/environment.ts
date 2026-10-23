@@ -10,7 +10,7 @@ const isLocal =
 
 export const environment = {
   production: !isLocal,
-  version: 'v1.3.0',
+  version: 'v1.4.0',
   // Se estiver a correr localmente ou na rede Wi-Fi de casa, usa a máquina local.
   // Se estiver na Vercel (*.vercel.app), aponta para o backend alojado na cloud.
   apiUrl: isLocal

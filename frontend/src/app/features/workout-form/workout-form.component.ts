@@ -32,7 +32,7 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
   activeTab = signal<'workouts' | 'streaks' | 'profile'>('workouts');
 
   // Versão Dinâmica da Aplicação
-  readonly appVersion = environment.version || 'v1.3.0';
+  readonly appVersion = environment.version || 'v1.4.0';
 
   // Estados de Aquecimento Pré-Treino
   warmupCompleted = signal<boolean>(false);
@@ -160,8 +160,33 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.buildWeekSchedule();
-    if (this.authService.currentUser()) {
+    const user = this.authService.currentUser();
+    if (user?.id) {
+      this.loadCachedData(user.id);
       this.loadUserWorkouts();
+    }
+  }
+
+  private loadCachedData(userId: number): void {
+    try {
+      const cachedStats = localStorage.getItem(`ai_workout_stats_${userId}`);
+      if (cachedStats) {
+        this.userStats.set(JSON.parse(cachedStats));
+      }
+      const cachedWorkouts = localStorage.getItem(`ai_workout_workouts_${userId}`);
+      if (cachedWorkouts) {
+        const workouts: WorkoutPlanResponse[] = JSON.parse(cachedWorkouts);
+        this.allUserWorkouts.set(workouts);
+        const days = this.weekDays().map((day) => {
+          const match = workouts.find((w) => w.workoutDate === day.date);
+          return { ...day, workout: match };
+        });
+        this.weekDays.set(days);
+        const selected = days.find((d) => d.date === this.selectedDate());
+        this.currentWorkout.set(selected?.workout || null);
+      }
+    } catch (e) {
+      console.warn('Erro ao carregar dados do cache local:', e);
     }
   }
 
@@ -216,9 +241,15 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
   }
 
   logout(): void {
+    const user = this.authService.currentUser();
+    if (user?.id) {
+      localStorage.removeItem(`ai_workout_stats_${user.id}`);
+      localStorage.removeItem(`ai_workout_workouts_${user.id}`);
+    }
     this.authService.logout();
     this.currentWorkout.set(null);
     this.allUserWorkouts.set([]);
+    this.userStats.set(null);
     this.activeTab.set('workouts');
     this.buildWeekSchedule();
     this.cdr.detectChanges();
@@ -334,6 +365,9 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
     this.workoutService.getUserWorkouts(user.id).subscribe({
       next: (workouts) => {
         this.allUserWorkouts.set(workouts);
+        try {
+          localStorage.setItem(`ai_workout_workouts_${user.id}`, JSON.stringify(workouts));
+        } catch {}
         const days = this.weekDays().map((day) => {
           const match = workouts.find((w) => w.workoutDate === day.date);
           return { ...day, workout: match };
@@ -358,6 +392,9 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
     this.workoutService.getUserStats(user.id).subscribe({
       next: (stats) => {
         this.userStats.set(stats);
+        try {
+          localStorage.setItem(`ai_workout_stats_${user.id}`, JSON.stringify(stats));
+        } catch {}
         this.cdr.detectChanges();
       },
       error: (err) => {
