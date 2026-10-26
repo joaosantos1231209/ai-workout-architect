@@ -110,6 +110,7 @@ public class WorkoutController {
                 .title(planRecord.title())
                 .focusArea(planRecord.focusArea())
                 .warmupRoutine(planRecord.warmupRoutine())
+                .cooldownRoutine(planRecord.cooldownRoutine())
                 .explanation(planRecord.explanation())
                 .workoutDate(targetDate)
                 .completed(false)
@@ -306,6 +307,11 @@ public class WorkoutController {
             effectiveWarmup = getDynamicWarmupFallback(plan.getFocusArea());
         }
 
+        String effectiveCooldown = plan.getCooldownRoutine();
+        if (effectiveCooldown == null || effectiveCooldown.isBlank()) {
+            effectiveCooldown = getDynamicCooldownFallback(plan.getFocusArea());
+        }
+
         List<ExerciseDto> exerciseDtos = plan.getExercises().stream()
                 .map(ex -> new ExerciseDto(
                         ex.getId(),
@@ -323,6 +329,7 @@ public class WorkoutController {
                 plan.getTitle(),
                 plan.getFocusArea(),
                 effectiveWarmup,
+                effectiveCooldown,
                 plan.getExplanation(),
                 plan.getWorkoutDate(),
                 plan.isCompleted(),
@@ -345,6 +352,23 @@ public class WorkoutController {
             return "1. Respiração diafragmática profunda em decúbito dorsal (1 min) • 2. Rotações lentas do pescoço e ombros (2x 30s) • 3. Postura da Criança com respiração relaxada (60s) • 4. Rotações torácicas em quatro apoios (8 reps por lado).";
         } else {
             return "1. Marcha com elevação de joelhos e rotação de braços (60s) • 2. Inchworm (caminhada das mãos à prancha e retorno) (2x 5 reps) • 3. Agachamentos com peso corporal com rotação do tronco (2x 8 reps) • 4. Rotação articular completa de ombros e anca (30s).";
+        }
+    }
+
+    private String getDynamicCooldownFallback(String focusArea) {
+        String focus = focusArea != null ? focusArea.toLowerCase() : "";
+        if (focus.contains("superior") || focus.contains("peito") || focus.contains("braço") || focus.contains("costa")) {
+            return "1. Alongamento de Peitoral no Batente da Porta (45s por lado) • 2. Alongamento Cruzado de Deltoides/Ombro (30s por braço) • 3. Alongamento de Tríceps acima da cabeça (30s por lado) • 4. Alongamento de Grande Dorsal com apoio na parede (45s) • 5. Rotações lentas do pescoço e respiração diafragmática profunda (60s).";
+        } else if (focus.contains("inferior") || focus.contains("perna") || focus.contains("glúteo")) {
+            return "1. Alongamento Estático de Quadríceps em pé (45s por perna) • 2. Alongamento de Isquiotibiais sentado tocando as pontas dos pés (60s) • 3. Alongamento Figura 4 para Glúteos e Piriforme (45s por lado) • 4. Alongamento de Gémeos na parede (40s por perna) • 5. Postura da Borboleta para adutores com respiração profunda (60s).";
+        } else if (focus.contains("core") || focus.contains("abdominal") || focus.contains("abdómen")) {
+            return "1. Postura da Cobra para relaxamento do reto abdominal (2x 30s) • 2. Postura da Criança (Child's Pose) para descompressão lombar (60s) • 3. Torção Espinal Deitada para oblíquos (45s por lado) • 4. Alongamento de Flexores da Anca em Lunge Baixo (40s por perna) • 5. Respiração diafragmática profunda (1 min).";
+        } else if (focus.contains("cardio") || focus.contains("hiit") || focus.contains("caloria")) {
+            return "1. Caminhada suave com desaceleração do ritmo cardíaco (90s) • 2. Alongamento amplo de Quadríceps e Flexores da Anca (40s por perna) • 3. Alongamento de Isquiotibiais e Gémeos (45s por perna) • 4. Abertura torácica com mãos entrelaçadas atrás das costas (45s) • 5. Respiração lenta e recuperação do ritmo cardíaco (1 min).";
+        } else if (focus.contains("mobilidade") || focus.contains("alongamento") || focus.contains("recuperação")) {
+            return "1. Postura da Criança relaxada (60s) • 2. Alongamento global da cadeia posterior (tocando as pontas dos pés) (45s) • 3. Alongamento de Peitoral e Ombros (45s) • 4. Torção suave de coluna no tapete (45s por lado) • 5. Relaxamento total em decúbito dorsal com respiração profunda (90s).";
+        } else {
+            return "1. Postura da Criança com braços estendidos à frente (60s) • 2. Alongamento de Quadríceps e Isquiotibiais (40s por perna) • 3. Alongamento de Peitoral e Ombros na parede (45s) • 4. Torção da coluna deitado no tapete (40s por lado) • 5. Respiração lenta e relaxamento muscular total (60s).";
         }
     }
 }

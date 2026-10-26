@@ -730,6 +730,66 @@
                 }
               </div>
             </div>
+
+            <!-- ================================================================= -->
+            <!-- VOLTA À CALMA & ALONGAMENTOS PÓS-TREINO (ESPECÍFICO PARA A SESSÃO) -->
+            <!-- ================================================================= -->
+            @if (workout.cooldownRoutine) {
+              <div
+                class="rounded-2xl border transition-all p-4 sm:p-5 space-y-3"
+                [class]="cooldownCompleted()
+                  ? 'bg-teal-950/20 border-teal-500/40 shadow-sm'
+                  : 'bg-gradient-to-r from-teal-950/40 via-slate-900 to-slate-900 border-teal-500/50 shadow-lg shadow-teal-500/10'"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="text-xl sm:text-2xl">🧘</span>
+                      <h4 class="text-base sm:text-lg font-extrabold text-teal-300 tracking-tight">
+                        Volta à Calma & Alongamentos Pós-Treino
+                      </h4>
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/40">
+                        5 a 8 min
+                      </span>
+                    </div>
+                    <p class="text-xs text-slate-300">
+                      Relaxamento e descompressão desenhados especificamente para os músculos trabalhados nesta sessão:
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    (click)="toggleCooldown()"
+                    class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer select-none"
+                    [class]="cooldownCompleted()
+                      ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                      : 'bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40'"
+                  >
+                    @if (cooldownCompleted()) {
+                      <span>✓ Relaxado</span>
+                    } @else {
+                      <span>Marcar Feito</span>
+                    }
+                  </button>
+                </div>
+
+                <!-- Detalhes dos Exercícios de Alongamento e Relaxamento -->
+                <div class="p-3.5 rounded-xl bg-slate-950/80 border border-teal-500/20 text-xs sm:text-sm text-slate-200 leading-relaxed space-y-1.5">
+                  <p class="font-bold text-teal-300 flex items-center gap-1.5">
+                    <span>🌿</span> Sequência de Alongamentos & Respiração:
+                  </p>
+                  <p class="text-slate-300 leading-normal whitespace-pre-line">
+                    {{ workout.cooldownRoutine }}
+                  </p>
+                </div>
+
+                @if (!cooldownCompleted()) {
+                  <div class="text-[11px] text-teal-300/80 flex items-center gap-1.5">
+                    <span>💡</span> Sustenta cada postura suavemente sem dor aguda, respirando de forma profunda e compassada para acelerar a tua recuperação.
+                  </div>
+                }
+              </div>
+            }
           </div>
         }
 

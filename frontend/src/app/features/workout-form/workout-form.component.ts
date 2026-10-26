@@ -32,10 +32,11 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
   activeTab = signal<'workouts' | 'streaks' | 'profile'>('workouts');
 
   // Versão Dinâmica da Aplicação
-  readonly appVersion = environment.version || 'v1.4.0';
+  readonly appVersion = environment.version || 'v1.5.0';
 
-  // Estados de Aquecimento Pré-Treino
+  // Estados de Aquecimento Pré-Treino & Volta à Calma Pós-Treino
   warmupCompleted = signal<boolean>(false);
+  cooldownCompleted = signal<boolean>(false);
 
   // Estados de Gamificação e Estatísticas
   userStats = signal<UserStatsResponse | null>(null);
@@ -183,8 +184,13 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
         });
         this.weekDays.set(days);
         const selected = days.find((d) => d.date === this.selectedDate());
-        this.currentWorkout.set(selected?.workout || null);
+        if (selected?.workout) {
+          this.currentWorkout.set(selected.workout);
+          this.warmupCompleted.set(selected.workout.completed);
+          this.cooldownCompleted.set(selected.workout.completed);
+        }
       }
+      this.cdr.detectChanges();
     } catch (e) {
       console.warn('Erro ao carregar dados do cache local:', e);
     }
@@ -203,8 +209,11 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
 
     const credentials: AuthRequest = this.loginForm.value;
     this.authService.login(credentials).subscribe({
-      next: () => {
+      next: (user) => {
         this.authLoading.set(false);
+        if (user?.id) {
+          this.loadCachedData(user.id);
+        }
         this.loadUserWorkouts();
         this.cdr.detectChanges();
       },
@@ -227,8 +236,11 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
 
     const data: RegisterRequest = this.registerForm.value;
     this.authService.register(data).subscribe({
-      next: () => {
+      next: (user) => {
         this.authLoading.set(false);
+        if (user?.id) {
+          this.loadCachedData(user.id);
+        }
         this.loadUserWorkouts();
         this.cdr.detectChanges();
       },
@@ -286,6 +298,10 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
 
   toggleWarmup(): void {
     this.warmupCompleted.update((val) => !val);
+  }
+
+  toggleCooldown(): void {
+    this.cooldownCompleted.update((val) => !val);
   }
 
   // --- GESTÃO SEMANAL E TREINOS ---
@@ -407,6 +423,7 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
     this.selectedDate.set(day.date);
     this.currentWorkout.set(day.workout || null);
     this.warmupCompleted.set(day.workout?.completed ? true : false);
+    this.cooldownCompleted.set(day.workout?.completed ? true : false);
     this.showRegenerateOptions.set(false);
     this.errorMessage.set(null);
 
@@ -515,22 +532,72 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
     const workout = this.currentWorkout();
     if (!workout) return;
 
-    this.workoutService.toggleExercise(workout.id, exerciseId).subscribe({
-      next: (updatedPlan) => {
-        this.currentWorkout.set(updatedPlan);
+    // 1. ATUALIZAÇÃO OTIMISTA IMEDIATA (0ms de latência no clique)
+    const originalWorkout = workout;
+    const targetExercise = workout.exercises.find((e) => e.id === exerciseId);
+    if (!targetExercise) return;
 
-        // Atualizar estado no calendário
-        const updatedDays = this.weekDays().map((d) =>
-          d.date === updatedPlan.workoutDate ? { ...d, workout: updatedPlan } : d
+    const newCompleted = !targetExercise.completed;
+    const updatedExercises = workout.exercises.map((e) =>
+      e.id === exerciseId ? { ...e, completed: newCompleted } : e
+    );
+
+    const allCompleted = updatedExercises.length > 0 && updatedExercises.every((e) => e.completed);
+    const updatedWorkout: WorkoutPlanResponse = {
+      ...workout,
+      completed: allCompleted,
+      exercises: updatedExercises
+    };
+
+    // Atualiza o treino corrente de imediato
+    this.currentWorkout.set(updatedWorkout);
+
+    // Se concluiu todos os exercícios, assinala também o aquecimento e relaxamento
+    if (allCompleted) {
+      this.warmupCompleted.set(true);
+      this.cooldownCompleted.set(true);
+    }
+
+    // Atualiza o calendário de imediato
+    const updatedDays = this.weekDays().map((d) =>
+      d.date === updatedWorkout.workoutDate ? { ...d, workout: updatedWorkout } : d
+    );
+    this.weekDays.set(updatedDays);
+
+    // Guarda de imediato em cache local para persistência instantânea
+    const user = this.authService.currentUser();
+    if (user?.id) {
+      try {
+        const workouts = this.allUserWorkouts().map((w) =>
+          w.id === updatedWorkout.id ? updatedWorkout : w
         );
-        this.weekDays.set(updatedDays);
+        this.allUserWorkouts.set(workouts);
+        localStorage.setItem(`ai_workout_workouts_${user.id}`, JSON.stringify(workouts));
+      } catch {}
+    }
 
-        // Se o treino ficou concluído ou alterou estado, recarrega as estatísticas e streak
+    this.cdr.detectChanges();
+
+    // 2. SINCRONIZAÇÃO EM SEGUNDO PLANO COM O BACKEND
+    this.workoutService.toggleExercise(workout.id, exerciseId).subscribe({
+      next: (serverPlan) => {
+        this.currentWorkout.set(serverPlan);
+        const days = this.weekDays().map((d) =>
+          d.date === serverPlan.workoutDate ? { ...d, workout: serverPlan } : d
+        );
+        this.weekDays.set(days);
         this.loadUserStats();
         this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error('Erro ao alternar exercício:', err);
+        console.error('Erro ao sincronizar alternância de exercício:', err);
+        // Em caso de falha de ligação, reverte para o estado original
+        this.currentWorkout.set(originalWorkout);
+        const revertedDays = this.weekDays().map((d) =>
+          d.date === originalWorkout.workoutDate ? { ...d, workout: originalWorkout } : d
+        );
+        this.weekDays.set(revertedDays);
+        this.cdr.detectChanges();
       }
     });
   }

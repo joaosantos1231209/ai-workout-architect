@@ -37,7 +37,13 @@ public class AuthController {
      */
     @GetMapping("/ping")
     public ResponseEntity<String> ping() {
-        return ResponseEntity.ok("pong");
+        try {
+            long count = userProfileRepository.count();
+            return ResponseEntity.ok("pong (" + count + " users)");
+        } catch (Exception e) {
+            log.warn("Ping DB check warning: {}", e.getMessage());
+            return ResponseEntity.ok("pong");
+        }
     }
 
     /**

@@ -36,6 +36,7 @@ export interface WorkoutPlanResponse {
   title: string;
   focusArea: string;
   warmupRoutine?: string;
+  cooldownRoutine?: string;
   explanation: string;
   workoutDate: string; // ISO date 'YYYY-MM-DD'
   completed: boolean;

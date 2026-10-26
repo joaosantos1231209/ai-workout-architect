@@ -47,6 +47,9 @@ public class WorkoutPlan {
     @Column(name = "warmup_routine", length = 2000)
     private String warmupRoutine;
 
+    @Column(name = "cooldown_routine", length = 2000)
+    private String cooldownRoutine;
+
     @Column(length = 2000)
     private String explanation;
 

@@ -105,10 +105,11 @@ public class AiWorkoutService {
                 1. O treino é EXCLUSIVAMENTE para fazer EM CASA.
                 2. A sessão DEVE focar-se rigorosamente no tipo de treino: "%s". Todos os 4 a 5 exercícios devem ser direcionados especificamente a trabalhar esta área de foco (exemplo: se for Membros Superiores/Peito/Braços/Costas, usar flexões, fundos em cadeira, remadas com toalha; se for Membros Inferiores/Pernas/Glúteos, agachamentos búlgaros, passadas com garrafas, gémeos; se for Core/Abdominais, pranchas, abdominais em tapete, dead bug; se for Cardio HIIT, polichinelos, escaladores dinâmicos, burpees suaves; se for Mobilidade, rotações articulares e alongamentos).
                 3. AQUECIMENTO OBRIGATÓRIO (warmupRoutine): É OBRIGATÓRIO incluir no campo 'warmupRoutine' uma rotina de aquecimento específico pré-treino de 5 a 8 minutos, detalhada e estritamente desenhada de acordo com os exercícios e grupos musculares que vão ser trabalhados nesta sessão (ex: rotações de ombros, pulsos e ativação escapular para membros superiores; mobilidade de quadris, tornozelos e ativação glútea para pernas; gato-vaca e bird-dog para core).
-                4. UTILIZA APENAS o peso corporal (calistenia) e objetos comuns que QUALQUER PESSOA tem em casa (ex: cadeira firme, sofá, garrafas de água, toalha, mochila com livros, parede, chão/tapete).
-                5. É ESTRITAMENTE PROIBIDO utilizar ou sugerir qualquer equipamento de ginásio comercial (NÃO usar halteres, barras, máquinas, polias ou pesos de ginásio).
-                6. O idioma da resposta DEVE SER 100%% EM PORTUGUÊS (título estimulante, área de foco "%s", aquecimento específico no campo 'warmupRoutine', explicação da estratégia, nomes claros dos exercícios, repetições/tempo, equipamento doméstico e instruções detalhadas de técnica e postura adaptadas ao nível %s).
-                7. Dá dicas claras de postura (instruções) para evitar lesões e maximizar a ativação muscular.
+                4. VOLTA À CALMA E ALONGAMENTOS PÓS-TREINO (cooldownRoutine): É OBRIGATÓRIO incluir no campo 'cooldownRoutine' uma sequência de 5 a 8 minutos de exercícios de respiração e alongamentos estáticos/relaxamento desenhados especificamente para relaxar e descansar os músculos que acabaram de ser trabalhados nesta sessão (ex: peitoral, tríceps e deltoides para membros superiores; isquiotibiais, quadríceps e glúteos para pernas; lombar e flexores da anca para core).
+                5. UTILIZA APENAS o peso corporal (calistenia) e objetos comuns que QUALQUER PESSOA tem em casa (ex: cadeira firme, sofá, garrafas de água, toalha, mochila com livros, parede, chão/tapete).
+                6. É ESTRITAMENTE PROIBIDO utilizar ou sugerir qualquer equipamento de ginásio comercial (NÃO usar halteres, barras, máquinas, polias ou pesos de ginásio).
+                7. O idioma da resposta DEVE SER 100%% EM PORTUGUÊS (título estimulante, área de foco "%s", aquecimento específico no campo 'warmupRoutine', volta à calma específica no campo 'cooldownRoutine', explicação da estratégia, nomes claros dos exercícios, repetições/tempo, equipamento doméstico e instruções detalhadas de técnica e postura adaptadas ao nível %s).
+                8. Dá dicas claras de postura (instruções) para evitar lesões e maximizar a ativação muscular.
 
                 %s
                 """.formatted(
@@ -262,6 +263,7 @@ public class AiWorkoutService {
         String title;
         String focusArea;
         String warmupRoutine;
+        String cooldownRoutine;
         String explanation;
         List<ExerciseRecord> exercises;
 
@@ -269,6 +271,7 @@ public class AiWorkoutService {
             title = "Treino Superior de Força & Peitoral em Casa";
             focusArea = "Membros Superiores (Peito, Costas, Ombros e Braços)";
             warmupRoutine = "1. Rotação de Ombros e Pulsos (2x 30s) • 2. Círculos com os Braços frente/trás (2x 20 reps) • 3. Flexões inclinadas suaves na parede para ativação do peitoral e escápulas (2x 10 reps) • 4. Alongamento dinâmico de peitoral no batente da porta (30s por lado).";
+            cooldownRoutine = "1. Alongamento de Peitoral no Batente da Porta (45s por braço) • 2. Alongamento Cruzado de Ombros e Deltoides (30s por lado) • 3. Alongamento de Tríceps acima da cabeça (30s por braço) • 4. Alongamento de Grande Dorsal com apoio na parede (45s) • 5. Rotações lentas do pescoço com respiração profunda (60s).";
             explanation = "Rotina diária para %s (%d anos, nível %s) com foco nos músculos da parte superior do corpo, utilizando sobrecargas com garrafas e alavancas corporais em móveis firmes.".formatted(
                     profile.getName(), profile.getAge(), level);
             exercises = List.of(
@@ -312,6 +315,7 @@ public class AiWorkoutService {
             title = "Treino Potente de Pernas & Glúteos em Casa";
             focusArea = "Membros Inferiores (Pernas, Glúteos e Gémeos)";
             warmupRoutine = "1. Rotação Articular de Tornozelos e Joelhos (2x 30s) • 2. Balanço Dinâmico de Pernas (2x 10 reps por perna) • 3. Agachamento Profundo com pausa de 2 segundos no fundo (2x 8 reps) • 4. Ponte de Glúteos no chão para ativação neuromuscular (2x 12 reps).";
+            cooldownRoutine = "1. Alongamento Estático de Quadríceps em pé (45s por perna) • 2. Alongamento de Isquiotibiais sentado tocando as pontas dos pés (60s) • 3. Alongamento Figura 4 para Glúteos e Piriforme (45s por lado) • 4. Alongamento de Gémeos na parede (40s por perna) • 5. Postura da Borboleta para adutores (60s).";
             explanation = "Sessão focada na cadeia inferior para %s (%d anos, nível %s) garantindo hipertrofia, força e tonificação através de exercícios unilaterais e sobrecarga com peso corporal.".formatted(
                     profile.getName(), profile.getAge(), level);
             exercises = List.of(
@@ -355,6 +359,7 @@ public class AiWorkoutService {
             title = "Treino Intensivo de Core & Estabilidade Abdominal";
             focusArea = "Core & Abdominais (Tronco e Postura)";
             warmupRoutine = "1. Postura Gato-Vaca para mobilidade da coluna vertebral (2x 10 ciclos) • 2. Bird-Dog (Cão-Pássaro) para ativação do core e lombar (2x 8 reps por lado) • 3. Dead Bug controlado (2x 10 reps) • 4. Prancha isométrica de joelhos (2x 20s).";
+            cooldownRoutine = "1. Postura da Cobra para relaxamento do reto abdominal (2x 30s) • 2. Postura da Criança (Child's Pose) para descompressão lombar (60s) • 3. Torção Espinal Deitada para os oblíquos (45s por lado) • 4. Alongamento de Flexores da Anca em Lunge Baixo (40s por perna) • 5. Respiração diafragmática profunda (1 min).";
             explanation = "Rotina desenhada para %s (%d anos, nível %s) para esculpir o abdómen, fortalecer a cinta lombar e melhorar a estabilidade e postura diária.".formatted(
                     profile.getName(), profile.getAge(), level);
             exercises = List.of(
@@ -398,6 +403,7 @@ public class AiWorkoutService {
             title = "Circuito Metabólico HIIT Queima-Gordura em Casa";
             focusArea = "Cardio HIIT (Resistência e Queima de Calorias)";
             warmupRoutine = "1. Marcha no lugar com elevação suave dos joelhos (60s) • 2. Rotações Dinâmicas da Anca e Tronco (30s) • 3. Polichinelos de ritmo leve a moderado (45s) • 4. Agachamentos livres suaves de aquecimento (12 reps).";
+            cooldownRoutine = "1. Caminhada suave com desaceleração do ritmo cardíaco (90s) • 2. Alongamento amplo de Quadríceps e Flexores da Anca (40s por perna) • 3. Alongamento de Isquiotibiais e Gémeos (45s por perna) • 4. Abertura torácica com mãos entrelaçadas atrás das costas (45s) • 5. Respiração lenta e recuperação do ritmo cardíaco (1 min).";
             explanation = "Sessão de alta densidade e ritmo acelerado para %s (%d anos, nível %s) acelerar o metabolismo e o consumo calórico sem necessidade de máquinas.".formatted(
                     profile.getName(), profile.getAge(), level);
             exercises = List.of(
@@ -441,6 +447,7 @@ public class AiWorkoutService {
             title = "Sessão de Mobilidade & Recuperação Articular em Casa";
             focusArea = "Mobilidade, Flexibilidade & Alongamento";
             warmupRoutine = "1. Respiração diafragmática profunda em decúbito dorsal (1 min) • 2. Rotações lentas do pescoço e ombros (2x 30s) • 3. Postura da Criança com respiração relaxada (60s) • 4. Rotações torácicas em quatro apoios (8 reps por lado).";
+            cooldownRoutine = "1. Postura da Criança relaxada (60s) • 2. Alongamento global da cadeia posterior (tocando as pontas dos pés) (45s) • 3. Alongamento de Peitoral e Ombros (45s) • 4. Torção suave de coluna no tapete (45s por lado) • 5. Relaxamento total em decúbito dorsal com respiração profunda (90s).";
             explanation = "Rotina regenerativa para %s (%d anos, nível %s) para soltar tensões musculares, ampliar a flexibilidade e prevenir dores corporais.".formatted(
                     profile.getName(), profile.getAge(), level);
             exercises = List.of(
@@ -485,6 +492,7 @@ public class AiWorkoutService {
             title = "Treino Funcional de Corpo Inteiro (Full Body) em Casa";
             focusArea = "Corpo Inteiro (Calistenia & Objetos Caseiros)";
             warmupRoutine = "1. Marcha com elevação de joelhos e rotação de braços (60s) • 2. Inchworm (caminhada das mãos à prancha e retorno) (2x 5 reps) • 3. Agachamentos com peso corporal com rotação do tronco (2x 8 reps) • 4. Rotação articular completa de ombros e anca (30s).";
+            cooldownRoutine = "1. Postura da Criança com braços estendidos à frente (60s) • 2. Alongamento de Quadríceps e Isquiotibiais (40s por perna) • 3. Alongamento de Peitoral e Ombros na parede (45s) • 4. Torção da coluna deitado no tapete (40s por lado) • 5. Respiração lenta e relaxamento muscular total (60s).";
             explanation = "Treino equilibrado para %s (%d anos, nível %s) que ativa todos os grandes grupos musculares com peso corporal e cargas caseiras improvisadas.".formatted(
                     profile.getName(), profile.getAge(), level);
             exercises = List.of(
@@ -526,6 +534,6 @@ public class AiWorkoutService {
             );
         }
 
-        return new WorkoutPlanRecord(title, focusArea, warmupRoutine, explanation, exercises);
+        return new WorkoutPlanRecord(title, focusArea, warmupRoutine, cooldownRoutine, explanation, exercises);
     }
 }

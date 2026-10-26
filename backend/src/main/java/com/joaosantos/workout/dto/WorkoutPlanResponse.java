@@ -11,6 +11,7 @@ public record WorkoutPlanResponse(
         String title,
         String focusArea,
         String warmupRoutine,
+        String cooldownRoutine,
         String explanation,
         LocalDate workoutDate,
         boolean completed,
