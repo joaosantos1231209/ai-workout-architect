@@ -50,3 +50,12 @@ export interface UserStatsResponse {
   unlockedBadges: string[];
 }
 
+export interface AiWorkoutSuggestion {
+  focusArea: string;
+  fitnessLevel: string;
+  reason: string;
+  highlightBadge: string;
+  icon: string;
+}
+
+

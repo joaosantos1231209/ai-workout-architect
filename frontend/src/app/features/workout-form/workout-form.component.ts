@@ -4,7 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { AuthService } from '../../core/services/auth.service';
 import { WorkoutService } from '../../core/services/workout.service';
 import { ReminderService } from '../../core/services/reminder.service';
-import { UserProfile, WorkoutPlanResponse, AuthRequest, RegisterRequest, UserStatsResponse } from '../../core/models/workout.model';
+import { UserProfile, WorkoutPlanResponse, AuthRequest, RegisterRequest, UserStatsResponse, AiWorkoutSuggestion } from '../../core/models/workout.model';
 import { environment } from '../../../environments/environment';
 
 export interface DaySchedule {
@@ -32,11 +32,15 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
   activeTab = signal<'workouts' | 'streaks' | 'profile'>('workouts');
 
   // Versão Dinâmica da Aplicação
-  readonly appVersion = environment.version || 'v1.5.0';
+  readonly appVersion = environment.version || 'v1.6.0';
 
   // Estados de Aquecimento Pré-Treino & Volta à Calma Pós-Treino
   warmupCompleted = signal<boolean>(false);
   cooldownCompleted = signal<boolean>(false);
+
+  // Sugestão Inteligente da IA
+  aiSuggestion = signal<AiWorkoutSuggestion | null>(null);
+  suggestionApplied = signal<boolean>(false);
 
   // Estados de Gamificação e Estatísticas
   userStats = signal<UserStatsResponse | null>(null);
@@ -189,6 +193,7 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
           this.warmupCompleted.set(selected.workout.completed);
           this.cooldownCompleted.set(selected.workout.completed);
         }
+        this.calculateAiSuggestion();
       }
       this.cdr.detectChanges();
     } catch (e) {
@@ -393,6 +398,7 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
         // Selecionar o treino do dia atual
         const selected = days.find((d) => d.date === this.selectedDate());
         this.currentWorkout.set(selected?.workout || null);
+        this.calculateAiSuggestion();
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -433,36 +439,118 @@ export class WorkoutFormComponent implements OnInit, OnDestroy {
         this.dailyFocusArea.set(day.workout.focusArea);
       }
     } else {
-      // Pre-preencher com o nível atual do utilizador
-      if (user?.fitnessLevel) {
+      // Calcula a sugestão inteligente da IA com base no histórico
+      this.calculateAiSuggestion();
+      const suggestion = this.aiSuggestion();
+      if (suggestion) {
+        this.dailyFitnessLevel.set(suggestion.fitnessLevel);
+        this.dailyFocusArea.set(suggestion.focusArea);
+      } else if (user?.fitnessLevel) {
         this.dailyFitnessLevel.set(user.fitnessLevel);
       }
-      // Sugestão de foco dinâmica para novos treinos
-      const dayOfWeek = new Date(day.date + 'T00:00:00').getDay();
-      switch (dayOfWeek) {
-        case 1: // Segunda
-          this.dailyFocusArea.set('Membros Superiores');
-          break;
-        case 2: // Terça
-          this.dailyFocusArea.set('Membros Inferiores');
-          break;
-        case 3: // Quarta
-          this.dailyFocusArea.set('Core & Abdominais');
-          break;
-        case 4: // Quinta
-          this.dailyFocusArea.set('Cardio HIIT');
-          break;
-        case 5: // Sexta
-          this.dailyFocusArea.set('Corpo Inteiro (Full Body)');
-          break;
-        case 6: // Sábado
-          this.dailyFocusArea.set('Mobilidade & Alongamento');
-          break;
-        default: // Domingo
-          this.dailyFocusArea.set('Corpo Inteiro (Full Body)');
-          break;
+    }
+    this.cdr.detectChanges();
+  }
+
+  calculateAiSuggestion(): void {
+    const user = this.authService.currentUser();
+    const workouts = this.allUserWorkouts();
+
+    // Filtra treinos concluídos ou anteriores à data selecionada, ordenados pelo mais recente
+    const pastWorkouts = [...workouts]
+      .filter((w) => w.completed || w.workoutDate < this.selectedDate())
+      .sort((a, b) => b.workoutDate.localeCompare(a.workoutDate));
+
+    let focusArea = 'Corpo Inteiro (Full Body)';
+    let fitnessLevel = user?.fitnessLevel || 'Intermédio';
+    let reason = '';
+    let highlightBadge = 'Equilíbrio Semanal';
+    let icon = '⚡';
+
+    if (pastWorkouts.length === 0) {
+      focusArea = 'Corpo Inteiro (Full Body)';
+      fitnessLevel = user?.fitnessLevel || 'Iniciante';
+      highlightBadge = 'Primeiro Treino';
+      icon = '🏠';
+      reason = 'Como estás a começar a tua jornada, a IA sugere um treino de Corpo Inteiro funcional para ativares os músculos em casa de forma progressiva e segura.';
+    } else {
+      const last = pastWorkouts[0];
+      const lastFocus = (last.focusArea || '').toLowerCase();
+      const lastDate = last.workoutDate;
+
+      // Calibração de intensidade com base no feedback percebido
+      if (last.perceivedDifficulty === 'Muito Fácil') {
+        if (fitnessLevel === 'Iniciante') fitnessLevel = 'Intermédio';
+        else if (fitnessLevel === 'Intermédio') fitnessLevel = 'Avançado';
+        else if (fitnessLevel === 'Avançado') fitnessLevel = 'Atleta';
+        highlightBadge = 'Progressão de Carga';
+      } else if (last.perceivedDifficulty === 'Muito Difícil') {
+        if (fitnessLevel === 'Atleta') fitnessLevel = 'Avançado';
+        else if (fitnessLevel === 'Avançado') fitnessLevel = 'Intermédio';
+        else if (fitnessLevel === 'Intermédio') fitnessLevel = 'Iniciante';
+        highlightBadge = 'Prevenção de Fadiga';
+      }
+
+      // Rotação muscular inteligente baseada no último foco
+      if (lastFocus.includes('superior') || lastFocus.includes('peito') || lastFocus.includes('braço') || lastFocus.includes('costa')) {
+        focusArea = 'Membros Inferiores';
+        icon = '🦵';
+        if (highlightBadge !== 'Prevenção de Fadiga') highlightBadge = 'Equilíbrio Muscular';
+        reason = `No teu último treino (${lastDate}) focaste em Membros Superiores. A IA recomenda hoje Membros Inferiores para descansares peito, ombros e braços enquanto estimulas pernas e glúteos.`;
+      } else if (lastFocus.includes('inferior') || lastFocus.includes('perna') || lastFocus.includes('glúteo')) {
+        focusArea = 'Membros Superiores';
+        icon = '💪';
+        if (highlightBadge !== 'Prevenção de Fadiga') highlightBadge = 'Equilíbrio Muscular';
+        reason = `Como no teu último treino (${lastDate}) treinaste Pernas e Glúteos, hoje deves focar nos Membros Superiores para permitir a regeneração muscular inferior.`;
+      } else if (lastFocus.includes('core') || lastFocus.includes('abdominal')) {
+        focusArea = 'Cardio HIIT';
+        icon = '🔥';
+        highlightBadge = 'Queima Metabólica';
+        reason = `Depois de fortalecer a estabilidade do Core no último treino (${lastDate}), um circuito Cardio HIIT irá acelerar o metabolismo e o consumo calórico.`;
+      } else if (lastFocus.includes('cardio') || lastFocus.includes('hiit')) {
+        focusArea = 'Corpo Inteiro (Full Body)';
+        icon = '⚡';
+        highlightBadge = 'Força Funcional';
+        reason = `Após uma sessão intensa de Cardio (${lastDate}), a IA sugere um treino de Corpo Inteiro com foco em força e tonificação com calistenia caseira.`;
+      } else if (lastFocus.includes('mobilidade') || lastFocus.includes('alongamento')) {
+        focusArea = 'Membros Superiores';
+        icon = '💪';
+        highlightBadge = 'Articulações Prontas';
+        reason = `Após o treino regenerativo de mobilidade (${lastDate}), as tuas articulações estão frescas e prontas para uma sessão de força nos Membros Superiores.`;
+      } else {
+        focusArea = 'Core & Abdominais';
+        icon = '🛡️';
+        highlightBadge = 'Estabilidade Central';
+        reason = `A seguir a um treino geral de Corpo Inteiro (${lastDate}), focar no Core e na postura fortalece o tronco sem sobrecarregar a musculatura periférica.`;
+      }
+
+      if (last.perceivedDifficulty === 'Muito Difícil') {
+        reason += ' A intensidade foi adaptada para garantir uma recuperação saudável.';
+      } else if (last.perceivedDifficulty === 'Muito Fácil') {
+        reason += ' A intensidade foi elevada para continuar a desafiar os teus limites.';
       }
     }
+
+    this.aiSuggestion.set({
+      focusArea,
+      fitnessLevel,
+      reason,
+      highlightBadge,
+      icon
+    });
+  }
+
+  applyAiSuggestion(): void {
+    const suggestion = this.aiSuggestion();
+    if (!suggestion) return;
+
+    this.dailyFitnessLevel.set(suggestion.fitnessLevel);
+    this.dailyFocusArea.set(suggestion.focusArea);
+    this.suggestionApplied.set(true);
+    setTimeout(() => {
+      this.suggestionApplied.set(false);
+      this.cdr.detectChanges();
+    }, 2500);
     this.cdr.detectChanges();
   }
 

@@ -812,6 +812,69 @@
               </div>
             </div>
 
+            <!-- ================================================================= -->
+            <!-- SUGESTÃO INTELIGENTE DA IA (BASEADA NO HISTÓRICO & RECUPERAÇÃO) -->
+            <!-- ================================================================= -->
+            @if (aiSuggestion(); as suggestion) {
+              <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-950/70 via-slate-900 to-teal-950/50 border border-emerald-500/40 p-4 sm:p-5 shadow-xl space-y-3.5">
+                <!-- Efeito subtil de luz neon no fundo -->
+                <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 text-xl font-black shadow-md shadow-emerald-500/20 shrink-0">
+                      ✨
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <h4 class="text-base sm:text-lg font-extrabold text-white">
+                          Sugestão Inteligente da IA
+                        </h4>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          {{ suggestion.highlightBadge }}
+                        </span>
+                      </div>
+                      <p class="text-xs text-slate-400">
+                        Baseada no histórico dos teus treinos e equilíbrio muscular
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Botão para Aplicar Sugestão -->
+                  <button
+                    type="button"
+                    (click)="applyAiSuggestion()"
+                    class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 shadow-md cursor-pointer select-none"
+                    [class]="suggestionApplied()
+                      ? 'bg-emerald-400 text-slate-950 shadow-emerald-400/30 scale-95'
+                      : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'"
+                  >
+                    @if (suggestionApplied()) {
+                      <span>✓ Aplicada!</span>
+                    } @else {
+                      <span>⚡ Aplicar Sugestão</span>
+                    }
+                  </button>
+                </div>
+
+                <!-- Detalhes da Recomendação -->
+                <div class="p-3.5 rounded-xl bg-slate-950/80 border border-emerald-500/20 space-y-1.5">
+                  <div class="flex items-center gap-2 flex-wrap text-xs sm:text-sm">
+                    <span class="text-base">{{ suggestion.icon }}</span>
+                    <span class="text-slate-300">Recomendado para hoje:</span>
+                    <strong class="text-emerald-400 font-extrabold">{{ suggestion.focusArea }}</strong>
+                    <span class="text-slate-500">•</span>
+                    <span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-teal-500/15 text-teal-300 border border-teal-500/30">
+                      {{ suggestion.fitnessLevel }}
+                    </span>
+                  </div>
+                  <p class="text-xs text-slate-300 leading-relaxed">
+                    {{ suggestion.reason }}
+                  </p>
+                </div>
+              </div>
+            }
+
             <!-- 1. ESCOLHA DO NÍVEL -->
             <div class="space-y-2">
               <label class="block text-xs sm:text-sm font-semibold text-slate-200">
